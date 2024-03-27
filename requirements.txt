@@ -2,3 +2,5 @@ Flask
 python-dotenv
 sqlalchemy 
 flask_sqlalchemy
+requests 
+schedule
