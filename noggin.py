@@ -40,6 +40,7 @@ class Noggin:
     def __setup_routes(self):
         app.add_url_rule('/request', view_func=self.__process_request, methods=['POST'])
         app.add_url_rule('/request/<int:request_id>', view_func=self.__get_request, methods=['GET'])
+        app.add_url_rule('/request/next-unhandled', view_func=self.__get_next_unhandled_request, methods=['GET'])
         app.add_url_rule('/request/<int:request_id>', view_func=self.__update_request, methods=['PUT'])
         app.add_url_rule('/request/<int:request_id>', view_func=self.__delete_request, methods=['DELETE'])
 
@@ -66,6 +67,28 @@ class Noggin:
         db.session.add(new_request)
         db.session.commit()
         return jsonify({"message": "Request processed successfully", "id": new_request.id}), 200
+    
+    def __get_next_unhandled_request(self):
+        # Query the database for the first unhandled request
+        unhandled_request = Request.query.filter_by(is_handled=0).first()
+        
+        if unhandled_request:
+            # Convert the request data to a dictionary
+            request_data = {
+                "id": unhandled_request.id,
+                "timestamp": unhandled_request.timestamp.isoformat(),
+                "source_ip": unhandled_request.source_ip,
+                "user_agent": unhandled_request.user_agent,
+                "method": unhandled_request.method,
+                "request_url": unhandled_request.request_url,
+                "request_raw": unhandled_request.request_raw,
+                "is_handled": unhandled_request.is_handled
+            }
+
+            return jsonify(request_data), 200
+        else:
+            return jsonify({"message": "No unhandled requests found."}), 404
+
         
     def __get_request(self, request_id):
         if not self.__authorize_request():
