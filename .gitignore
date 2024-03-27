@@ -4,3 +4,4 @@
 .coverage
 .DS_Store
 /__pycache__
+requests.db
