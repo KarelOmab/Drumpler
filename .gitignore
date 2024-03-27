@@ -1,2 +1,6 @@
 
 /venv
+.env
+.coverage
+.DS_Store
+/__pycache__
