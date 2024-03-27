@@ -3,7 +3,8 @@ import sys
 import sqlite3
 from flask import Flask, request, jsonify
 from dotenv import load_dotenv
-import json  # Add this import if it's not already present
+import json
+import time
 
 
 class Noggin:
@@ -36,6 +37,7 @@ class Noggin:
 
     def __init_db(self):
         with self.__get_db_connection() as conn:
+            conn.execute('PRAGMA journal_mode=WAL;')
             conn.execute('''
                 CREATE TABLE IF NOT EXISTS requests (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -48,6 +50,7 @@ class Noggin:
                     is_handled INTEGER DEFAULT 0
                 );
             ''')
+
 
     def __authorize_request(self):
         authorization = request.headers.get('Authorization')
@@ -75,14 +78,22 @@ class Noggin:
         return jsonify({"message": "Request processed successfully", "id": request_id}), 200
 
 
-    def __insert_request(self, data):
-        with self.__get_db_connection() as conn:
-            cursor = conn.execute('''
-                INSERT INTO requests (source_ip, user_agent, method, request_url, request_raw)
-                VALUES (?, ?, ?, ?, ?);
-            ''', (data['source_ip'], data['user_agent'], data['method'], data['request_url'], data['request_raw']))
-            conn.commit()
-            return cursor.lastrowid
+    def __insert_request(self, data, retries=5, backoff_factor=0.5):
+        for attempt in range(retries):
+            try:
+                with self.__get_db_connection() as conn:
+                    cursor = conn.execute('''
+                        INSERT INTO requests (source_ip, user_agent, method, request_url, request_raw)
+                        VALUES (?, ?, ?, ?, ?);
+                    ''', (data['source_ip'], data['user_agent'], data['method'], data['request_url'], data['request_raw']))
+                    conn.commit()
+                    return cursor.lastrowid
+            except sqlite3.OperationalError as e:
+                if str(e) == "database is locked":
+                    sleep_time = backoff_factor * (2 ** attempt)
+                    time.sleep(sleep_time)
+                else:
+                    raise
         
     def __get_request(self, request_id):
         if not self.__authorize_request():
