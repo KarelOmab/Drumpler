@@ -1,15 +1,12 @@
 import requests
 import time
 import json
-from concurrent.futures import ThreadPoolExecutor, Future
+from concurrent.futures import ThreadPoolExecutor
 import multiprocessing
 from request import Request
-import keyboard  # Import the keyboard package
-import threading  # Import the threading module
+import keyboard
+import threading
 import os
-
-
-
 from datetime import datetime, timezone
 from sqlalchemy import create_engine, Column, Integer, String, DateTime, ForeignKey, Text
 from sqlalchemy.orm import sessionmaker, relationship
@@ -47,7 +44,6 @@ engine = create_engine(DATABASE_URI)
 Base.metadata.create_all(engine)
 
 Session = sessionmaker(bind=engine)
-
 
 class Mammoth:
     def __init__(self, noggin_url, workers=None):
