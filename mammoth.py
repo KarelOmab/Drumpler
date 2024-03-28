@@ -1,16 +1,17 @@
 import requests
 import time
 import json
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, Future
 import multiprocessing
 from request import Request
-
+import keyboard  # Import the keyboard package
 
 class Mammoth:
     def __init__(self, noggin_url, auth_token, workers=None):
         self.noggin_url = noggin_url
         self.auth_token = auth_token
         self.workers = workers if workers is not None else multiprocessing.cpu_count()
+        self.stop_signal = False  # A flag to signal workers to stop
 
     def fetch_next_unhandled_request(self):
         headers = {"Authorization": f"Bearer {self.auth_token}"}
@@ -51,13 +52,44 @@ class Mammoth:
         return False
 
     def run(self):
-        with ThreadPoolExecutor(max_workers=self.workers) as executor:
+        def stop_check():
             while True:
+                if keyboard.is_pressed('q'):  # If 'q' is pressed
+                    print("\nStopping all workers...")
+                    self.stop_signal = True  # Set the stop signal
+                    break
+                time.sleep(0.1)  # Check every 100ms
+
+        with ThreadPoolExecutor(max_workers=self.workers) as executor:
+            # Start the stop check in a separate thread
+            stop_thread = executor.submit(stop_check)
+            
+            # Start processing jobs until stop signal is received
+            while not self.stop_signal:
                 futures = [executor.submit(self.fetch_and_process_next_unhandled_request) for _ in range(self.workers)]
                 for future in futures:
-                    future.result()  # Waits for the thread to complete and handles exceptions if any
+                    if self.stop_signal:
+                        break  # Break the loop if stop signal is received
+                    try:
+                        future.result(timeout=10)  # Waits for the thread to complete and handles exceptions if any
+                    except KeyboardInterrupt:
+                        self.stop_signal = True
+                        break
+                    except Future.TimeoutError:
+                        # Handle timeout if a future doesn't complete within the specified time
+                        continue
+
+            # Cancel all futures if they're still running
+            for future in futures:
+                future.cancel()
+            
+            # Wait for the stop check thread to complete
+            stop_thread.result()
 
     def fetch_and_process_next_unhandled_request(self):
+        if self.stop_signal:  # Check if stop signal is received before starting new work
+            return
+        
         request = self.fetch_next_unhandled_request()
         if request:
             process = self.process_request_data(request)
@@ -66,10 +98,10 @@ class Mammoth:
                 request.mark_as_handled()
 
 if __name__ == "__main__":
-    NOGGIN_URL = "http://127.0.0.1:5000"  # Adjust the URL/port as necessary
-    AUTH_TOKEN = "YourAuthorizationKeyHere"  # Your actual authorization token
+    NOGGIN_URL = "http://127.0.0.1:5000"
+    AUTH_TOKEN = "YourAuthorizationKeyHere"
     NUM_WORKERS = 2
 
     mammoth_app = Mammoth(NOGGIN_URL, AUTH_TOKEN, NUM_WORKERS)
-    print("Starting Mammoth application...")
+    print("Starting Mammoth application... Press 'q' to stop.")
     mammoth_app.run()
