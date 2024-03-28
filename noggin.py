@@ -54,7 +54,7 @@ class Noggin:
             
     def __process_request(self):
         if not self.__authorize_request():
-            return jsonify({"error": "Invalid or missing authorization"}), 401
+            return jsonify({"message": "Invalid or missing authorization"}), 401
 
         data = request.get_json() or {}  # Fallback to an empty dict if no JSON is provided
         new_request = Request(
@@ -92,7 +92,7 @@ class Noggin:
         
     def __get_request(self, request_id):
         if not self.__authorize_request():
-            return jsonify({"error": "Invalid or missing authorization"}), 401
+            return jsonify({"message": "Invalid or missing authorization"}), 401
 
         request_entry = Request.query.get(request_id)
         if request_entry:
@@ -107,11 +107,11 @@ class Noggin:
                 "is_handled": request_entry.is_handled
             }), 200
         else:
-            return jsonify({"error": "Request not found"}), 404
+            return jsonify({"message": "Request not found"}), 404
 
     def __update_request(self, request_id):
         if not self.__authorize_request():
-            return jsonify({"error": "Invalid or missing authorization"}), 401
+            return jsonify({"message": "Invalid or missing authorization"}), 401
 
         data = request.get_json()
         request_entry = Request.query.get(request_id)
@@ -121,12 +121,12 @@ class Noggin:
             db.session.commit()
             return jsonify({"message": "Request updated successfully"}), 200
         else:
-            return jsonify({"error": "Request not found"}), 404
+            return jsonify({"message": "Request not found"}), 404
 
 
     def __delete_request(self, request_id):
         if not self.__authorize_request():
-            return jsonify({"error": "Invalid or missing authorization"}), 401
+            return jsonify({"message": "Invalid or missing authorization"}), 401
 
         request_entry = Request.query.get(request_id)
         if request_entry:
@@ -134,7 +134,7 @@ class Noggin:
             db.session.commit()
             return jsonify({"message": "Request deleted successfully"}), 200
         else:
-            return jsonify({"error": "Request not found"}), 404
+            return jsonify({"message": "Request not found"}), 404
 
     def run(self):
         with app.app_context():
