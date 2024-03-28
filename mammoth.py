@@ -4,7 +4,6 @@ import json
 from concurrent.futures import ThreadPoolExecutor
 import multiprocessing
 from request import Request
-import keyboard
 import threading
 import os
 from datetime import datetime, timezone
@@ -12,6 +11,7 @@ from sqlalchemy import create_engine, Column, Integer, String, DateTime, Foreign
 from sqlalchemy.orm import sessionmaker, relationship
 from sqlalchemy.orm import declarative_base
 from constants import DATABASE_URI
+import signal
 
 Base = declarative_base()
 
@@ -39,11 +39,12 @@ Base.metadata.create_all(engine)
 Session = sessionmaker(bind=engine)
 
 class Mammoth:
-    def __init__(self, noggin_url, workers=None):
+    def __init__(self, noggin_url, process_request_data, workers=None):
         self.noggin_url = noggin_url
         self.auth_key = os.getenv('AUTHORIZATION_KEY', 'default_key')  # Default value if not set
         self.workers = workers if workers is not None else multiprocessing.cpu_count()
         self.stop_signal = threading.Event()  # Use an event to signal workers to stop
+        self.user_process_request_data = process_request_data
 
     def fetch_next_unhandled_request(self, session, noggin_url, auth_key):
         headers = {"Authorization": f"Bearer {auth_key}"}
@@ -76,7 +77,6 @@ class Mammoth:
             print("Error fetching unhandled request:", e)
             return None, None
 
-
     def process_request_data(self, session, request, job_id):
         if request.request_raw:
             payload = json.loads(request.request_raw)
@@ -85,14 +85,6 @@ class Mammoth:
             # Log the start of processing as an event
             start_event = Event(job_id=job_id, message=f'Start processing request {request.id} in thread {thread_id}.')
             session.add(start_event)
-
-            # Simulate some work
-            import random
-            for i in range(random.randint(1, 5)):
-                print(f"Request: {request.id}\tThread:{thread_id}\tDoing some heavy work...")
-                time.sleep(random.randint(1, 5))
-
-                # Optionally log progress events here
 
             # Mark job as completed
             job = session.query(Job).filter(Job.id == job_id).first()
@@ -115,28 +107,25 @@ class Mammoth:
         return Session()
 
     def run(self):
-        # Setup a listener for the 'q' keypress in a background thread
-        def on_q_pressed(event):
-            if event.name == 'q':
-                print("\n'q' pressed, stopping all workers...")
-                self.stop_signal.set()
-
-        keyboard.on_press(on_q_pressed)
-
         def worker_task(session_factory, noggin_url, auth_key, stop_signal):
             session = session_factory()
             while not stop_signal.is_set():
                 request, job_id = self.fetch_next_unhandled_request(session, noggin_url, auth_key)
                 if request and job_id:
-                    processed = self.process_request_data(session, request, job_id)
-                    if processed:
-                        request.mark_as_handled()
+                    # Call the user-defined processing function
+                    self.user_process_request_data(session, request, job_id)
             session.close()
+
+        # Set up signal handling to catch CTRL+C
+        original_sigint_handler = signal.getsignal(signal.SIGINT)
+        signal.signal(signal.SIGINT, lambda sig, frame: self.stop_signal.set())
 
         with ThreadPoolExecutor(max_workers=self.workers) as executor:
             for _ in range(self.workers):
                 executor.submit(worker_task, self.session_factory, self.noggin_url, self.auth_key, self.stop_signal)
 
+        # Restore the original SIGINT handler
+        signal.signal(signal.SIGINT, original_sigint_handler)
         print("All workers have been stopped.")
 
 if __name__ == "__main__":
