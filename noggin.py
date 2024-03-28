@@ -1,10 +1,11 @@
 import os
 import sys
 from flask import Flask, request, jsonify
-from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import text
 from dotenv import load_dotenv
 import json
+from flask_sqlalchemy import SQLAlchemy
+from request import Request as BaseRequest
 
 app = Flask(__name__)
 load_dotenv()  # Load environment variables from .env file
@@ -14,7 +15,7 @@ app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///requests.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
-class Request(db.Model):
+class Request(db.Model, BaseRequest):
     id = db.Column(db.Integer, primary_key=True)
     timestamp = db.Column(db.DateTime, default=db.func.current_timestamp())
     source_ip = db.Column(db.String(128))
