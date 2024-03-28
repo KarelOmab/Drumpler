@@ -135,8 +135,9 @@ class Mammoth:
             while not stop_signal.is_set():
                 request, job_id = self.fetch_next_unhandled_request(session, noggin_url, auth_key)
                 if request and job_id:
-                    self.process_request_data(session, request, job_id)
-                    # Assuming request.mark_as_handled() updates the request's status
+                    processed = self.process_request_data(session, request, job_id)
+                    if processed:
+                        request.mark_as_handled()
             session.close()
 
         with ThreadPoolExecutor(max_workers=self.workers) as executor:
