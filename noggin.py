@@ -11,7 +11,9 @@ app = Flask(__name__)
 load_dotenv()  # Load environment variables from .env file
 
 # Configuration
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///requests.db'
+#app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///requests.db'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://noggin_user:yourpassword@localhost/noggin_db'
+
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
@@ -24,6 +26,7 @@ class Request(db.Model, BaseRequest):
     request_url = db.Column(db.String(256))
     request_raw = db.Column(db.Text)
     is_handled = db.Column(db.Integer, default=0)
+    is_being_processed = db.Column(db.Boolean, default=False)
 
 
 class Noggin:
@@ -71,9 +74,11 @@ class Noggin:
     
     def __get_next_unhandled_request(self):
         # Query the database for the first unhandled request
-        unhandled_request = Request.query.filter_by(is_handled=0).first()
+        unhandled_request = Request.query.filter_by(is_handled=0, is_being_processed=False).first()
         
         if unhandled_request:
+            unhandled_request.is_being_processed = True
+            db.session.commit()
             # Convert the request data to a dictionary
             request_data = {
                 "id": unhandled_request.id,
@@ -142,7 +147,6 @@ class Noggin:
             db.create_all()  # Initialize the database tables within an application context
             
             # Enable Write-Ahead Logging for SQLite, explicitly declaring the SQL expression as text
-            db.session.execute(text('PRAGMA journal_mode=WAL;'))
             db.session.commit()
             
         app.run(host=self.host, port=self.port, debug=self.debug)
