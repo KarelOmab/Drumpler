@@ -1,3 +1,11 @@
+import requests
+import os
+from dotenv import load_dotenv
+
+load_dotenv()  # Load environment variables from .env file
+
+NOGGIN_URL = "http://127.0.0.1:5000"  # Adjust the URL/port as necessary
+
 class Request:
     def __init__(self, id, timestamp, source_ip, user_agent, method, request_url, request_raw, is_handled):
         self._id = id
@@ -8,6 +16,29 @@ class Request:
         self._request_url = request_url
         self._request_raw = request_raw
         self._is_handled = is_handled
+
+    def mark_as_handled(self):
+        headers = {
+            'Authorization': f'Bearer {os.getenv('AUTHORIZATION_KEY')}',
+            'Content-Type': 'application/json'  # Indicate JSON payload
+        }
+        payload = {
+            'is_handled': 1  # Assuming setting `is_handled` to 1 marks it as handled
+        }
+
+        try:
+            response = requests.put(f"{NOGGIN_URL}/request/{self.id}", json=payload, headers=headers)
+            if response.status_code == 200:
+                print(f"Request {self.id} marked as handled successfully.")
+            else:
+                # Attempt to extract and print a more descriptive error message
+                try:
+                    error_message = response.json().get('message', 'No error message provided.')
+                except ValueError:  # If response is not in JSON format
+                    error_message = response.text
+                print(f"Failed to mark request {self.id} as handled: {response.status_code}, Error: {error_message}")
+        except requests.exceptions.RequestException as e:
+            print(f"Error marking request {self.id} as handled: {e}")
 
     @property
     def id(self):
