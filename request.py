@@ -29,16 +29,16 @@ class Request:
         try:
             response = requests.put(f"{NOGGIN_URL}/request/{self.id}", json=payload, headers=headers)
             if response.status_code == 200:
-                print(f"Request {self.id} marked as handled successfully.")
+                return f"Request {self.id} marked as handled successfully."
             else:
                 # Attempt to extract and print a more descriptive error message
                 try:
                     error_message = response.json().get('message', 'No error message provided.')
                 except ValueError:  # If response is not in JSON format
                     error_message = response.text
-                print(f"Failed to mark request {self.id} as handled: {response.status_code}, Error: {error_message}")
+                return f"Failed to mark request {self.id} as handled: {response.status_code}, Error: {error_message}"
         except requests.exceptions.RequestException as e:
-            print(f"Error marking request {self.id} as handled: {e}")
+            return f"Error marking request {self.id} as handled: {e}"
 
     @property
     def id(self):
