@@ -11,6 +11,7 @@ from datetime import datetime, timezone
 from sqlalchemy import create_engine, Column, Integer, String, DateTime, ForeignKey, Text
 from sqlalchemy.orm import sessionmaker, relationship
 from sqlalchemy.orm import declarative_base
+from constants import DATABASE_URI
 
 Base = declarative_base()
 
@@ -31,14 +32,6 @@ class Event(Base):
     job_id = Column(Integer, ForeignKey('jobs.id'), nullable=False)
     timestamp = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
     message = Column(Text)  # Use Text for potentially longer messages
-
-# Load environment variables
-DB_NAME = os.getenv('DB_NAME')
-DB_HOST = os.getenv('DB_HOST')
-DB_USER = os.getenv('DB_USER')
-DB_PASS = os.getenv('DB_PASS')
-
-DATABASE_URI = f'postgresql://{DB_USER}:{DB_PASS}@{DB_HOST}/{DB_NAME}'
 
 engine = create_engine(DATABASE_URI)
 Base.metadata.create_all(engine)
@@ -85,7 +78,7 @@ class Mammoth:
 
 
     def process_request_data(self, session, request, job_id):
-        if request and request.request_raw:
+        if request.request_raw:
             payload = json.loads(request.request_raw)
             thread_id = threading.get_ident()  # Get the current thread's identifier
             

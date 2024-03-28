@@ -2,22 +2,12 @@ import os
 import sys
 from flask import Flask, request, jsonify
 from sqlalchemy import text
-from dotenv import load_dotenv
+from constants import DATABASE_URI
 import json
 from flask_sqlalchemy import SQLAlchemy
 from request import Request as BaseRequest
 
 app = Flask(__name__)
-load_dotenv()  # Load environment variables from .env file
-
-# Configuration
-# Load environment variables
-DB_NAME = os.getenv('DB_NAME')
-DB_HOST = os.getenv('DB_HOST')
-DB_USER = os.getenv('DB_USER')
-DB_PASS = os.getenv('DB_PASS')
-
-DATABASE_URI = f'postgresql://{DB_USER}:{DB_PASS}@{DB_HOST}/{DB_NAME}'
 
 app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URI
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
@@ -34,11 +24,9 @@ class Request(db.Model, BaseRequest):
     is_handled = db.Column(db.Integer, default=0)
     is_being_processed = db.Column(db.Boolean, default=False)
 
-
 class Noggin:
     def __init__(self, host='127.0.0.1', port=5000, debug=True):
         self.__init_env()
-        load_dotenv()  # Load environment variables from .env file
         self.app = Flask(__name__)
         self.DATABASE = 'requests.db'
         self.AUTHORIZATION_KEY = os.getenv('AUTHORIZATION_KEY')
@@ -133,7 +121,6 @@ class Noggin:
             return jsonify({"message": "Request updated successfully"}), 200
         else:
             return jsonify({"message": "Request not found"}), 404
-
 
     def __delete_request(self, request_id):
         if not self.__authorize_request():
