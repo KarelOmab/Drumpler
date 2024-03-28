@@ -12,7 +12,7 @@ load_dotenv()  # Load environment variables from .env file
 
 # Configuration
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///requests.db'
-app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://noggin_user:yourpassword@localhost/noggin_db'
+app.config['SQLALCHEMY_DATABASE_URI'] = f'postgresql://{os.getenv('DB_USER')}:{os.getenv('DB_PASS')}@localhost/noggin_db'
 
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
@@ -73,8 +73,8 @@ class Noggin:
         return jsonify({"message": "Request processed successfully", "id": new_request.id}), 200
     
     def __get_next_unhandled_request(self):
-        # Query the database for the first unhandled request
-        unhandled_request = Request.query.filter_by(is_handled=0, is_being_processed=False).first()
+        # Query the database for the first unhandled request, ordering by id to prioritize earlier records
+        unhandled_request = Request.query.filter_by(is_handled=0, is_being_processed=False).order_by(Request.id).first()
         
         if unhandled_request:
             unhandled_request.is_being_processed = True
@@ -95,7 +95,6 @@ class Noggin:
         else:
             return jsonify({"message": "No unhandled requests found."}), 404
 
-        
     def __get_request(self, request_id):
         if not self.__authorize_request():
             return jsonify({"message": "Invalid or missing authorization"}), 401
