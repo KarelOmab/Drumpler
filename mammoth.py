@@ -5,6 +5,7 @@ from concurrent.futures import ThreadPoolExecutor
 import multiprocessing
 from request import Request
 
+
 class Mammoth:
     def __init__(self, noggin_url, auth_token, workers=None):
         self.noggin_url = noggin_url
@@ -29,6 +30,7 @@ class Mammoth:
                 )
             else:
                 print("Failed to fetch unhandled request:", response.status_code)
+                time.sleep(5)
                 return None
         except requests.exceptions.RequestException as e:
             print("Error fetching unhandled request:", e)
@@ -66,7 +68,7 @@ class Mammoth:
 if __name__ == "__main__":
     NOGGIN_URL = "http://127.0.0.1:5000"  # Adjust the URL/port as necessary
     AUTH_TOKEN = "YourAuthorizationKeyHere"  # Your actual authorization token
-    NUM_WORKERS = 1
+    NUM_WORKERS = 2
 
     mammoth_app = Mammoth(NOGGIN_URL, AUTH_TOKEN, NUM_WORKERS)
     print("Starting Mammoth application...")
