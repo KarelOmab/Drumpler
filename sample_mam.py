@@ -17,6 +17,7 @@ def custom_process_function(session, request, job_id):
 
     return True
 
+
 # Initialize Mammoth
 
 app = Mammoth(process_request_data=custom_process_function, noggin_url=NOGGIN_URL, workers=MAMMOTH_WORKERS)

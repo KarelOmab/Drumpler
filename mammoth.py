@@ -76,7 +76,7 @@ class Mammoth:
             print("Error fetching unhandled request:", e)
             return None, None
 
-    def process_request_data(self, session, request, job_id):
+    def process_request_start(self, session, request, job_id):
         if request.request_raw:
             payload = json.loads(request.request_raw)
             thread_id = threading.get_ident()  # Get the current thread's identifier
@@ -84,7 +84,16 @@ class Mammoth:
             # Log the start of processing as an event
             start_event = Event(job_id=job_id, message=f'Start processing request {request.id} in thread {thread_id}.')
             session.add(start_event)
-
+            session.commit()
+            
+            return True
+        return False
+    
+    def process_request_complete(self, session, request, job_id):
+        if request.request_raw:
+            payload = json.loads(request.request_raw)
+            thread_id = threading.get_ident()  # Get the current thread's identifier
+            
             # Mark job as completed
             job = session.query(Job).filter(Job.id == job_id).first()
             if job:
@@ -112,10 +121,13 @@ class Mammoth:
                 request, job_id = self.fetch_next_unhandled_request(session, noggin_url)
                 if request and job_id:
                     # Call the user-defined processing function
+                    self.process_request_start(session, request, job_id)
                     process = self.user_process_request_data(session, request, job_id)
 
                     if process:
                         request.mark_as_handled()
+                        self.process_request_complete(session, request, job_id)
+
 
             session.close()
 
