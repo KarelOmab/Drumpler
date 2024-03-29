@@ -2,7 +2,7 @@ import os
 import sys
 from flask import Flask, request, jsonify
 from sqlalchemy import text
-from constants import DATABASE_URI
+from constants import NOGGIN_URL, DATABASE_URI, AUTHORIZATION_KEY
 import json
 from flask_sqlalchemy import SQLAlchemy
 from request import Request as BaseRequest
@@ -25,11 +25,11 @@ class Request(db.Model, BaseRequest):
     is_being_processed = db.Column(db.Boolean, default=False)
 
 class Noggin:
-    def __init__(self, host='127.0.0.1', port=5000, debug=True):
+    def __init__(self, host=NOGGIN_URL, port=5000, debug=True):
         self.__init_env()
         self.app = Flask(__name__)
         self.DATABASE = 'requests.db'
-        self.AUTHORIZATION_KEY = os.getenv('AUTHORIZATION_KEY')
+        self.AUTHORIZATION_KEY = AUTHORIZATION_KEY
         self.host = host
         self.port = port
         self.debug = debug

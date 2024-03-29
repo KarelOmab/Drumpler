@@ -1,3 +1,4 @@
+#pip install locust
 #locust -f locustfile_crud.py
 
 from locust import HttpUser, task, between

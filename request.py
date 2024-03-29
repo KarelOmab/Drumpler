@@ -1,10 +1,6 @@
 import requests
 import os
-from dotenv import load_dotenv
-
-load_dotenv()  # Load environment variables from .env file
-
-NOGGIN_URL = "http://127.0.0.1:5000"  # Adjust the URL/port as necessary
+from constants import NOGGIN_URL, AUTHORIZATION_KEY
 
 class Request:
     def __init__(self, id, timestamp, source_ip, user_agent, method, request_url, request_raw, is_handled):
@@ -19,7 +15,7 @@ class Request:
 
     def mark_as_handled(self):
         headers = {
-            'Authorization': f'Bearer {os.getenv('AUTHORIZATION_KEY')}',
+            'Authorization': f'Bearer {AUTHORIZATION_KEY}',
             'Content-Type': 'application/json'  # Indicate JSON payload
         }
         payload = {

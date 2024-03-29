@@ -2,6 +2,7 @@ from mammoth import Mammoth
 import threading
 import time
 import signal
+from constants import NOGGIN_URL, MAMMOTH_WORKERS
 
 def custom_process_function(session, request, job_id):
     # Custom logic for processing a request
@@ -14,10 +15,11 @@ def custom_process_function(session, request, job_id):
         print(f"Request: {request.id}\tThread:{thread_id}\tDoing some heavy work...")
         time.sleep(random.randint(1, 5))
 
+    return True
+
 # Initialize Mammoth
-NOGGIN_URL = "http://127.0.0.1:5000"
-NUM_WORKERS = 2
-app = Mammoth(noggin_url=NOGGIN_URL, process_request_data=custom_process_function, workers=NUM_WORKERS)
+
+app = Mammoth(process_request_data=custom_process_function, noggin_url=NOGGIN_URL, workers=MAMMOTH_WORKERS)
 
 def signal_handler(sig, frame):
     print("CTRL+C pressed! Stopping Mammoth application...")

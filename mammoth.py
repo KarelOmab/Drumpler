@@ -5,12 +5,11 @@ from concurrent.futures import ThreadPoolExecutor
 import multiprocessing
 from request import Request
 import threading
-import os
 from datetime import datetime, timezone
 from sqlalchemy import create_engine, Column, Integer, String, DateTime, ForeignKey, Text
 from sqlalchemy.orm import sessionmaker, relationship
 from sqlalchemy.orm import declarative_base
-from constants import DATABASE_URI
+from constants import DATABASE_URI, AUTHORIZATION_KEY, NOGGIN_URL, MAMMOTH_WORKERS
 import signal
 
 Base = declarative_base()
@@ -39,15 +38,15 @@ Base.metadata.create_all(engine)
 Session = sessionmaker(bind=engine)
 
 class Mammoth:
-    def __init__(self, noggin_url, process_request_data, workers=None):
+    def __init__(self, process_request_data, noggin_url=NOGGIN_URL, workers=MAMMOTH_WORKERS):
         self.noggin_url = noggin_url
-        self.auth_key = os.getenv('AUTHORIZATION_KEY', 'default_key')  # Default value if not set
+        self.auth_key = AUTHORIZATION_KEY  # Default value if not set
         self.workers = workers if workers is not None else multiprocessing.cpu_count()
         self.stop_signal = threading.Event()  # Use an event to signal workers to stop
         self.user_process_request_data = process_request_data
 
-    def fetch_next_unhandled_request(self, session, noggin_url, auth_key):
-        headers = {"Authorization": f"Bearer {auth_key}"}
+    def fetch_next_unhandled_request(self, session, noggin_url):
+        headers = {"Authorization": f"Bearer {self.auth_key}"}
         try:
             response = requests.get(f"{noggin_url}/request/next-unhandled", headers=headers)
             if response.status_code == 200:
@@ -110,10 +109,14 @@ class Mammoth:
         def worker_task(session_factory, noggin_url, auth_key, stop_signal):
             session = session_factory()
             while not stop_signal.is_set():
-                request, job_id = self.fetch_next_unhandled_request(session, noggin_url, auth_key)
+                request, job_id = self.fetch_next_unhandled_request(session, noggin_url)
                 if request and job_id:
                     # Call the user-defined processing function
-                    self.user_process_request_data(session, request, job_id)
+                    process = self.user_process_request_data(session, request, job_id)
+
+                    if process:
+                        request.mark_as_handled()
+
             session.close()
 
         # Set up signal handling to catch CTRL+C
@@ -128,10 +131,7 @@ class Mammoth:
         signal.signal(signal.SIGINT, original_sigint_handler)
         print("All workers have been stopped.")
 
-if __name__ == "__main__":
-    NOGGIN_URL = "http://127.0.0.1:5000"
-    NUM_WORKERS = 2  # Adjust as needed.
-
-    mammoth_app = Mammoth(NOGGIN_URL, NUM_WORKERS)
-    print("Starting Mammoth application...")
-    mammoth_app.run()
+#if __name__ == "__main__":
+#    mammoth_app = Mammoth()
+#    print("Starting Mammoth application...")
+#    mammoth_app.run()
