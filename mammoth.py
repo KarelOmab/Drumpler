@@ -88,7 +88,7 @@ class Mammoth:
             thread_id = threading.get_ident()  # Get the current thread's identifier
             
             # Log the start of processing as an event
-            start_event = Event(job_id=job_id, message=f'Start processing request {request.id}.')
+            start_event = Event(job_id=job_id, message=f'Started processing job:{job_id}, originated from request {request.id}.')
             session.add(start_event)
             session.commit()
             
@@ -108,7 +108,7 @@ class Mammoth:
                 session.add(job)
             
             # Log the completion of processing as an event
-            completion_event = Event(job_id=job_id, message=f'Completed processing request {request.id}.')
+            completion_event = Event(job_id=job_id, message=f'Completed processing job:{job_id}, originated from request {request.id}.')
             session.add(completion_event)
 
             session.commit()

@@ -1,5 +1,5 @@
 import requests
-import os
+import json
 from constants import NOGGIN_URL, AUTHORIZATION_KEY
 
 class Request:
@@ -11,6 +11,7 @@ class Request:
         self._method = method
         self._request_url = request_url
         self._request_raw = request_raw
+        self._request_json = json.loads(request_raw)
         self._is_handled = is_handled
 
     def mark_as_handled(self):
@@ -91,6 +92,14 @@ class Request:
     @request_raw.setter
     def request_raw(self, value):
         self._request_raw = value
+
+    @property
+    def request_json(self):
+        return self._request_json
+
+    @request_json.setter
+    def request_json(self, value):
+        self._request_json = value
 
     @property
     def is_handled(self):

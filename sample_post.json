@@ -1,0 +1,21 @@
+{
+    "input_file": "https://f002.backblazeb2.com/file/dam-zipper-test/merged.mp4",
+    "output_filename": "processed_video",
+    "output_extension": ".mp4",
+    "output_profile": "h264-hd.ffpreset",
+    "stitched": true,
+    "clips": [
+      {
+        "in": 0,
+        "out": 10,
+        "title": "Introduction"
+      },
+      {
+        "in": 15,
+        "out": 30,
+        "title": "Main_Part"
+      }
+    ],
+    "rclone_remote_label": "mycloudstorage",
+    "bucket_name": "myvideobucket"
+  }
