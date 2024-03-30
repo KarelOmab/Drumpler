@@ -45,6 +45,12 @@ class Mammoth:
         self.stop_signal = threading.Event()  # Use an event to signal workers to stop
         self.user_process_request_data = process_request_data
 
+    def insert_event(self, session, job_id, message):
+        start_event = Event(job_id=job_id, message=message)
+        session.add(start_event)
+        session.commit()
+        return True
+
     def fetch_next_unhandled_request(self, session, noggin_url):
         headers = {"Authorization": f"Bearer {self.auth_key}"}
         try:
@@ -82,7 +88,7 @@ class Mammoth:
             thread_id = threading.get_ident()  # Get the current thread's identifier
             
             # Log the start of processing as an event
-            start_event = Event(job_id=job_id, message=f'Start processing request {request.id} in thread {thread_id}.')
+            start_event = Event(job_id=job_id, message=f'Start processing request {request.id}.')
             session.add(start_event)
             session.commit()
             
@@ -102,7 +108,7 @@ class Mammoth:
                 session.add(job)
             
             # Log the completion of processing as an event
-            completion_event = Event(job_id=job_id, message=f'Completed processing request {request.id} in thread {thread_id}.')
+            completion_event = Event(job_id=job_id, message=f'Completed processing request {request.id}.')
             session.add(completion_event)
 
             session.commit()
