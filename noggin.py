@@ -2,7 +2,7 @@ import os
 import sys
 from flask import Flask, request, jsonify
 from sqlalchemy import text
-from constants import NOGGIN_URL, DATABASE_URI, AUTHORIZATION_KEY
+from constants import NOGGIN_HOST, NOGGIN_PORT, NOGGIN_DEBUG, DATABASE_URI, AUTHORIZATION_KEY
 import json
 from flask_sqlalchemy import SQLAlchemy
 from request import Request as BaseRequest
@@ -25,7 +25,7 @@ class Request(db.Model, BaseRequest):
     is_being_processed = db.Column(db.Boolean, default=False)
 
 class Noggin:
-    def __init__(self, host=NOGGIN_URL, port=5000, debug=True):
+    def __init__(self, host=NOGGIN_HOST, port=NOGGIN_PORT, debug=NOGGIN_DEBUG):
         self.__init_env()
         self.app = Flask(__name__)
         self.DATABASE = 'requests.db'
@@ -68,7 +68,8 @@ class Noggin:
     
     def __get_next_unhandled_request(self):
         # Query the database for the first unhandled request, ordering by id to prioritize earlier records
-        unhandled_request = Request.query.filter_by(is_handled=0, is_being_processed=False).order_by(Request.id).first()
+        #unhandled_request = Request.query.filter_by(is_handled=0, is_being_processed=False).order_by(Request.id).first()
+        unhandled_request = Request.query.filter_by(is_handled=0).order_by(Request.id).first()
         
         if unhandled_request:
             unhandled_request.is_being_processed = True
@@ -139,7 +140,7 @@ class Noggin:
             db.create_all()  # Initialize the database tables within an application context
             db.session.commit()
             
-        app.run(host=self.host, port=self.port, debug=self.debug)
+        app.run()
 
 if __name__ == '__main__':
     noggin = Noggin()
