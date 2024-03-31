@@ -16,6 +16,6 @@
         "title": "Main_Part"
       }
     ],
-    "rclone_remote_label": "mycloudstorage",
-    "bucket_name": "myvideobucket"
+    "rclone_remote_label": "dam-zipper-test-b2",
+    "bucket_name": "dam-zipper-test"
   }

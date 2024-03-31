@@ -26,7 +26,6 @@ class Clipper:
         self.bucket_name = request.request_json.get('bucket_name')
 
         self.b2_base_url = "https://f002.backblazeb2.com/file"
-
         self.temp_file = NamedTemporaryFile(delete=False)
 
 
@@ -49,7 +48,7 @@ class Clipper:
 
         self.temp_file.write(r.content)
         self.temp_file.close()
-        return True
+        return os.path.exists(self.temp_file.name)
 
     def process_video_clips(self):
         output_dir = os.path.join(os.path.dirname(__file__), 'output')
@@ -59,6 +58,7 @@ class Clipper:
 
         if not os.path.isfile(preset_file_path):
             self.log(f"Error: Output profile file '{preset_file_path}' not found.")
+            return False
 
         preset_options = []
         try:
@@ -78,9 +78,12 @@ class Clipper:
         try:
             for clip in self.clips:
                 output_clip_name = os.path.join(output_dir, f"{clip.get('title').replace(' ', '_')}{self.output_extension}") if not self.stitched else NamedTemporaryFile(delete=False, dir=output_dir, suffix=self.output_extension).name
-                command = ["ffmpeg", "-y", "-i", self.input_file, "-ss", str(clip.get('in')), "-t", str(clip.get('out') - clip.get('in'))] + preset_options + [output_clip_name]
+                command = ["ffmpeg", "-i", self.temp_file.name, "-ss", str(clip.get('in')), "-t", str(clip.get('out') - clip.get('in')), "-y"] + preset_options + [output_clip_name]
             
-                self.log(f"ff args:{" ".join(command)}")
+                command_string = " ".join(command)
+                #print(command_string)
+                #input()
+                self.log(command_string)
 
                 subprocess.run(command, check=True)
                 output_files.append(output_clip_name)
@@ -95,7 +98,11 @@ class Clipper:
                 final_output_filename = os.path.join(output_dir, self.output_filename + self.output_extension)
                 concat_command = ["ffmpeg", "-f", "concat", "-safe", "0", "-i", concat_file_path, "-c", "copy", "-y", final_output_filename]
 
-                self.log(f"ff args:{" ".join(concat_command)}")
+                command_string = " ".join(concat_command)
+                #print(command_string)
+                #input()
+
+                self.log(command_string)
 
                 subprocess.run(concat_command, check=True)
                 # Cleanup temporary files
@@ -122,7 +129,6 @@ def custom_process_function(session, request, job_id):
         if is_downloaded:
 
             upload_files = clipper.process_video_clips()
-
             uploaded_file_urls = []
             upload_successes = []
 
