@@ -1,107 +1,68 @@
 
-# Noggin
+# `Noggin`
 
-Noggin simplifies setting up a RESTful API server with Flask, focusing on the efficient handling and storage of HTTP requests. Designed to work out of the box, it allows developers to quickly integrate and store incoming requests in a SQLite database without worrying about the underlying details.
+`Noggin` is a general-purpose application designed to facilitate efficient workflow automation through RESTful API interactions and job processing. Built on Flask and SQLAlchemy, this application serves as a robust backend for capturing, storing, and processing HTTP requests in a scalable manner. The application is split into two main components: `noggin.py` for handling RESTful API requests and `mammoth.py` for querying the API and processing jobs asynchronously.
 
 ## Features
 
--   **Flexible Request Handling**: Accepts any raw JSON payload for POST requests.
--   **Automatic Metadata Extraction**: Dynamically extracts and stores request metadata such as source IP, user agent, and request method.
--   **SQLite Database Integration**: Seamlessly stores request data and metadata in a SQLite database for easy retrieval and management.
--   **Simple Configuration**: Easy to set up with minimal configuration required.
--   **Thread-safe**: Built to handle multiple requests concurrently without data loss.
+-   **RESTful API Endpoints**: Secure and scalable endpoints for handling HTTP requests, including POST, GET, PUT, and DELETE operations.
+-   **Database Integration**: Utilizes SQLAlchemy for ORM-based interactions with the database, supporting a variety of database systems.
+-   **Job Processing**: Facilitates the asynchronous processing of tasks with support for multi-threading and multi-processing, ensuring efficient workflow automation.
+-   **Event Logging**: Detailed event logging for each job processed, allowing for easy tracking and management of tasks.
 
-## Getting Started
+## Prerequisites
 
-### Prerequisites
+Before you begin, ensure you have the following installed:
 
-Ensure you have Python 3.6 or later installed on your system.
+-   Python 3.6 or later
+-   Flask
+-   SQLAlchemy
+-   Requests
 
-### Installation
+Additionally, you will need:
 
-1.  Clone this repository or download the `noggin.py` module into your project directory.
-2.  Create a `.env` file in the root of your project directory with the following content, replacing `YourAuthorizationKeyHere` with your desired authorization key:
+-   A PostgreSQL database or any SQL database supported by SQLAlchemy.
+-   An `.env` file configured with your database URI and authorization key.
 
-`AUTHORIZATION_KEY=YourAuthorizationKeyHere`
+## Installation
 
-3.  Install the required dependencies:
+Clone the repository to your local machine:
+`git  clone  https://github.com/<your-github-username>/<repository-name>.git  cd  <repository-name>`
 
+Install the required Python packages:
 `pip install -r requirements.txt`
 
-### Usage
+## Configuration
 
-To use Noggin in your project:
+Create a `.env` file in the root directory of the application with the following contents:
+`DATABASE_URI=your_database_uri_here AUTHORIZATION_KEY=your_authorization_key_here Noggin_HOST=0.0.0.0 Noggin_PORT=5000 Noggin_DEBUG=True`
 
-```
-from noggin import Noggin 
+Replace `your_database_uri_here` and `your_authorization_key_here` with your actual database URI and desired authorization key.
 
-app = Noggin(host='127.0.0.1', port=5000, debug=True) 
-app.run()
-```
+## Running the Application
 
-This will start a Flask server configured to handle requests as specified by the Noggin application.
+To start the `noggin` API server:
+`python noggin.py`
+
+To initiate `mammoth` for processing jobs:
+`python mammoth.py`
+
+Ensure that `mammoth.py` is customized to include your specific job processing logic within the `process_request_data` function.
 
 ## API Endpoints
 
-Noggin provides the following endpoints:
+The application exposes several endpoints for interacting with the system:
 
--   **POST `/request`**: Accepts any raw JSON payload and stores it along with request metadata.
--   **GET `/request/<request_id>`**: Retrieves a specific request and its metadata by ID.
--   **PUT `/request/<request_id>`**: Updates the `is_handled` status of a specific request.
--   **DELETE `/request/<request_id>`**: Deletes a specific request.
+-   **POST** `/request`: Submit a new request for processing.
+-   **GET** `/request/<int:request_id>`: Retrieve a specific request by its ID.
+-   **GET** `/request/next-unhandled`: Fetch the next unhandled request.
+-   **PUT** `/request/<int:request_id>`: Update the status of a request.
+-   **DELETE** `/request/<int:request_id>`: Delete a specific request.
 
+## Contributing
 
-### Examples
-
-#### POST `/request`
-
-To create a new request with any raw JSON payload:
-
-`curl -X POST  "http://localhost:5000/request"  \ -H  "Content-Type: application/json"  \ -H  "Authorization: Bearer YourAuthorizationKey"  \ -d  '{"foo": "bar", "number": 123}'`
-
-#### GET `/request/<request_id>`
-
-To retrieve a specific request by ID (replace `1` with the actual request ID you want to retrieve):
-
-`curl -X GET  "http://localhost:5000/request/1"  \ -H  "Authorization: Bearer YourAuthorizationKey"`
-
-#### PUT `/request/<request_id>`
-
-To update the `is_handled` status of a specific request (replace `1` with the request ID you want to update):
-
-`curl -X PUT  "http://localhost:5000/request/1"  \ -H  "Content-Type: application/json"  \ -H  "Authorization: Bearer YourAuthorizationKey"  \ -d  '{"is_handled": 1}'`
-
-This request marks the request with ID `1` as handled.
-
-#### DELETE `/request/<request_id>`
-
-To delete a specific request by ID (replace `1` with the request ID you want to delete):
-
-`curl -X DELETE  "http://localhost:5000/request/1"  \ -H  "Authorization: Bearer YourAuthorizationKey"`
-
-### Note:
-
--   In all the examples, `YourAuthorizationKey` should be replaced with the actual authorization key you've defined.
--   The JSON payload for the POST request can be any valid JSON structure. The examples use a simple object for demonstration.
--   The `is_handled` field in the PUT request example is set to `1`, indicating the request has been processed. Adjust this as needed based on your application's logic.
-## Development
-
-Noggin abstracts the complexities of request handling, making it straightforward to integrate into your existing Python projects. It's designed as a black box, but understanding its internal workings can help in extending its capabilities or troubleshooting.
-
-### Testing
-
-Refer to the `test_noggin.py` file for examples on how to write tests for your Noggin application. To run the tests, ensure you have the following packages installed:
-
-`pip install pytest coverage Flask-Testing`
-
-Then, execute the tests with:
-
-`coverage run --branch -m pytest && coverage report -m`
-
-## Contribution
-
-Contributions to Noggin are welcome! Please feel free to fork the repository, make your changes, and submit a pull request.
+Contributions to `Noggin` are welcome! Please follow the standard fork-branch-PR workflow.
 
 ## License
 
-Noggin is open-source software licensed under the MIT license.
+This project is licensed under the MIT License - see the LICENSE file for details.
