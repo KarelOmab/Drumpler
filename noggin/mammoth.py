@@ -3,13 +3,13 @@ import time
 import json
 from concurrent.futures import ThreadPoolExecutor
 import multiprocessing
-from noggin.request import Request
+from request import Request
 import threading
 from datetime import datetime, timezone
 from sqlalchemy import create_engine, Column, Integer, String, DateTime, ForeignKey, Text
 from sqlalchemy.orm import sessionmaker, relationship
 from sqlalchemy.orm import declarative_base
-from noggin.constants import DATABASE_URI, AUTHORIZATION_KEY, NOGGIN_URL, MAMMOTH_WORKERS
+from constants import DATABASE_URI, AUTHORIZATION_KEY, NOGGIN_URL, MAMMOTH_WORKERS
 import signal
 
 Base = declarative_base()
@@ -133,7 +133,6 @@ class Mammoth:
                     if process:
                         request.mark_as_handled()
                         self.process_request_complete(session, request, job_id)
-
 
             session.close()
 

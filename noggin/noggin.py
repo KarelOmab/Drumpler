@@ -2,10 +2,10 @@ import os
 import sys
 from flask import Flask, request, jsonify
 from sqlalchemy import text
-from noggin.constants import NOGGIN_HOST, NOGGIN_PORT, NOGGIN_DEBUG, DATABASE_URI, AUTHORIZATION_KEY
+from constants import NOGGIN_HOST, NOGGIN_PORT, NOGGIN_DEBUG, DATABASE_URI, AUTHORIZATION_KEY
 import json
 from flask_sqlalchemy import SQLAlchemy
-from noggin.request import Request as BaseRequest
+from request import Request as BaseRequest
 
 app = Flask(__name__)
 
