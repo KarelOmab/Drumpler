@@ -1,0 +1,18 @@
+postgres=# CREATE USER noggin_user WITH PASSWORD 'yourpassword';
+CREATE ROLE
+postgres=# CREATE DATABASE noggin_db;
+CREATE DATABASE
+postgres=# GRANT ALL PRIVILEGES ON DATABASE noggin_db TO noggin_user;
+GRANT
+postgres=# GRANT CREATE ON DATABASE noggin_db TO noggin_user;
+GRANT
+postgres=# \c noggin_db
+You are now connected to database "noggin_db" as user "kareltutsu".
+noggin_db=# GRANT ALL PRIVILEGES ON SCHEMA public TO noggin_user;
+GRANT
+noggin_db=# GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO noggin_user;
+GRANT
+noggin_db=# GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO noggin_user;
+GRANT
+noggin_db=# \q
+(venv) kareltutsu@macmini Noggin % 
