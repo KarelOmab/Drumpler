@@ -1,6 +1,6 @@
 import requests
 import json
-from constants import NOGGIN_URL, AUTHORIZATION_KEY
+from noggin.constants import NOGGIN_URL, AUTHORIZATION_KEY
 
 class Request:
     def __init__(self, id, timestamp, source_ip, user_agent, method, request_url, request_raw, is_handled):
