@@ -1,7 +1,6 @@
 import os
 import sys
 from flask import Flask, request, jsonify
-from sqlalchemy import text
 from constants import NOGGIN_HOST, NOGGIN_PORT, NOGGIN_DEBUG, DATABASE_URI, AUTHORIZATION_KEY
 import json
 from flask_sqlalchemy import SQLAlchemy
@@ -67,25 +66,31 @@ class Noggin:
         return jsonify({"message": "Request processed successfully", "id": new_request.id}), 200
     
     def __get_next_unhandled_request(self):
-        # Query the database for the first unhandled request, ordering by id to prioritize earlier records
-        #unhandled_request = Request.query.filter_by(is_handled=0, is_being_processed=False).order_by(Request.id).first()
-        unhandled_request = Request.query.filter_by(is_handled=0).order_by(Request.id).first()
-        
-        if unhandled_request:
-            unhandled_request.is_being_processed = True
-            db.session.commit()
-            # Convert the request data to a dictionary
-            request_data = {
-                "id": unhandled_request.id,
-                "timestamp": unhandled_request.timestamp.isoformat(),
-                "source_ip": unhandled_request.source_ip,
-                "user_agent": unhandled_request.user_agent,
-                "method": unhandled_request.method,
-                "request_url": unhandled_request.request_url,
-                "request_raw": unhandled_request.request_raw,
-                "is_handled": unhandled_request.is_handled
-            }
+        with db.session.begin():
+            unhandled_request = db.session.query(Request)\
+                .filter_by(is_handled=0, is_being_processed=False)\
+                .order_by(Request.id)\
+                .with_for_update(skip_locked=True).first()
 
+            if unhandled_request:
+                # Prepare data before committing the transaction
+                request_data = {
+                    "id": unhandled_request.id,
+                    "timestamp": unhandled_request.timestamp.isoformat(),
+                    "source_ip": unhandled_request.source_ip,
+                    "user_agent": unhandled_request.user_agent,
+                    "method": unhandled_request.method,
+                    "request_url": unhandled_request.request_url,
+                    "request_raw": unhandled_request.request_raw,
+                    "is_handled": unhandled_request.is_handled
+                }
+                
+                # Now that we have all needed data, mark as being processed
+                unhandled_request.is_being_processed = True
+                # Commit is done by the context manager upon exit
+
+        # Return outside the context manager to avoid accessing the session
+        if unhandled_request:
             return jsonify(request_data), 200
         else:
             return jsonify({"message": "No unhandled requests found."}), 404
