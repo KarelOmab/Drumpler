@@ -7,3 +7,4 @@
 requests.db
 instance/requests.db-shm
 instance/requests.db-wal
+/noggin/__pycache__
