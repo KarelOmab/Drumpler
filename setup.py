@@ -1,8 +1,8 @@
 from setuptools import setup, find_packages
 
 setup(
-    name='drumpler',
-    version='1.0.0',
+    name='Drumpler',
+    version='1.0.2',
     author='Karel Tutsu',
     author_email='karel.tutsu@gmail.com',
     description='Framework for rapidly developing a restful API that requires post processing',

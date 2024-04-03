@@ -1,6 +1,11 @@
 LICENSE
 README.md
 setup.py
+Drumpler.egg-info/PKG-INFO
+Drumpler.egg-info/SOURCES.txt
+Drumpler.egg-info/dependency_links.txt
+Drumpler.egg-info/requires.txt
+Drumpler.egg-info/top_level.txt
 drumpler/__init__.py
 drumpler/constants.py
 drumpler/drumpler.py

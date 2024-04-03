@@ -1,6 +1,6 @@
 Metadata-Version: 2.1
-Name: drumpler
-Version: 1.0.0
+Name: Drumpler
+Version: 1.0.2
 Summary: Framework for rapidly developing a restful API that requires post processing
 Home-page: https://github.com/KarelOmab/Drumpler
 Author: Karel Tutsu
@@ -22,7 +22,7 @@ Requires-Dist: psycopg2-binary
 
 # `Drumpler`
 
-`Drumpler` is a general-purpose application designed to facilitate efficient workflow automation through RESTful API interactions and job processing. Built on Flask and SQLAlchemy, this application serves as a robust backend for capturing, storing, and processing HTTP requests in a scalable manner. The application is split into two main components: `Drumpler.py` for handling RESTful API requests and `mammoth.py` for querying the API and processing jobs asynchronously.
+`Drumpler` is a general-purpose application designed to facilitate efficient workflow automation through RESTful API interactions and job processing. Built on Flask and SQLAlchemy, this application serves as a robust backend for capturing, storing, and processing HTTP requests in a scalable manner. The application is split into two main components: `drumpler.py` for handling RESTful API requests and `mammoth.py` for querying the API and processing jobs asynchronously.
 
 ## Features
 
@@ -47,28 +47,34 @@ Additionally, you will need:
 
 ## Installation
 
-Clone the repository to your local machine:
-`git  clone  https://github.com/<your-github-username>/<repository-name>.git  cd  <repository-name>`
-
-Install the required Python packages:
-`pip install -r requirements.txt`
+Install Drumpler via pip:
+`pip install Drumpler`
 
 ## Configuration
 
 Create a `.env` file in the root directory of the application with the following contents:
-`DATABASE_URI=your_database_uri_here AUTHORIZATION_KEY=your_authorization_key_here Drumpler_HOST=0.0.0.0 Drumpler_PORT=5000 Drumpler_DEBUG=True`
+```
+DATABASE_URI=your_database_uri_here 
+AUTHORIZATION_KEY=your_authorization_key_here 
+Drumpler_HOST=0.0.0.0 
+Drumpler_PORT=5000 
+Drumpler_DEBUG=True
+```
 
 Replace `your_database_uri_here` and `your_authorization_key_here` with your actual database URI and desired authorization key.
 
-## Running the Application
+## Using the Application
 
 To start the `Drumpler` API server:
-`python drumpler.py`
+```
+import drumpler
 
-To initiate `mammoth` for processing jobs:
-`python mammoth.py`
+# Now, you can create an instance of the Drumpler class
+app = drumpler.Drumpler(host="0.0.0.0", port=5000, debug=True)
 
-Ensure that `mammoth.py` is customized to include your specific job processing logic within the `process_request_data` function.
+# And call the run method on this instance
+app.run()
+```
 
 ## API Endpoints
 

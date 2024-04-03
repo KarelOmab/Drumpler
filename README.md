@@ -27,7 +27,7 @@ Additionally, you will need:
 ## Installation
 
 Install Drumpler via pip:
-`pip install drumpler`
+`pip install Drumpler`
 
 ## Configuration
 
@@ -42,15 +42,18 @@ Drumpler_DEBUG=True
 
 Replace `your_database_uri_here` and `your_authorization_key_here` with your actual database URI and desired authorization key.
 
-## Running the Application
+## Using the Application
 
 To start the `Drumpler` API server:
-`python drumpler.py`
+```
+import drumpler
 
-To initiate `mammoth` for processing jobs:
-`python mammoth.py`
+# Now, you can create an instance of the Drumpler class
+app = drumpler.Drumpler(host="0.0.0.0", port=5000, debug=True)
 
-Ensure that `mammoth.py` is customized to include your specific job processing logic within the `process_request_data` function.
+# And call the run method on this instance
+app.run()
+```
 
 ## API Endpoints
 
