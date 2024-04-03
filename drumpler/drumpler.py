@@ -145,7 +145,7 @@ class Drumpler:
             db.create_all()  # Initialize the database tables within an application context
             db.session.commit()
             
-        app.run()
+        app.run(host=self.host, port=self.port, debug=self.debug)
 
 if __name__ == '__main__':
     drumpler = Drumpler()
