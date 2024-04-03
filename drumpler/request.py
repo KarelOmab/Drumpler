@@ -1,6 +1,6 @@
 import requests
 import json
-from constants import NOGGIN_URL, AUTHORIZATION_KEY
+from constants import DRUMPLER_URL, AUTHORIZATION_KEY
 
 class Request:
     def __init__(self, id, timestamp, source_ip, user_agent, method, request_url, request_raw, is_handled):
@@ -24,7 +24,7 @@ class Request:
         }
 
         try:
-            response = requests.put(f"{NOGGIN_URL}/request/{self.id}", json=payload, headers=headers)
+            response = requests.put(f"{DRUMPLER_URL}/request/{self.id}", json=payload, headers=headers)
             if response.status_code == 200:
                 return f"Request {self.id} marked as handled successfully."
             else:

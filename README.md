@@ -1,7 +1,7 @@
 
-# `Noggin`
+# `Drumpler`
 
-`Noggin` is a general-purpose application designed to facilitate efficient workflow automation through RESTful API interactions and job processing. Built on Flask and SQLAlchemy, this application serves as a robust backend for capturing, storing, and processing HTTP requests in a scalable manner. The application is split into two main components: `noggin.py` for handling RESTful API requests and `mammoth.py` for querying the API and processing jobs asynchronously.
+`Drumpler` is a general-purpose application designed to facilitate efficient workflow automation through RESTful API interactions and job processing. Built on Flask and SQLAlchemy, this application serves as a robust backend for capturing, storing, and processing HTTP requests in a scalable manner. The application is split into two main components: `Drumpler.py` for handling RESTful API requests and `mammoth.py` for querying the API and processing jobs asynchronously.
 
 ## Features
 
@@ -35,14 +35,14 @@ Install the required Python packages:
 ## Configuration
 
 Create a `.env` file in the root directory of the application with the following contents:
-`DATABASE_URI=your_database_uri_here AUTHORIZATION_KEY=your_authorization_key_here Noggin_HOST=0.0.0.0 Noggin_PORT=5000 Noggin_DEBUG=True`
+`DATABASE_URI=your_database_uri_here AUTHORIZATION_KEY=your_authorization_key_here Drumpler_HOST=0.0.0.0 Drumpler_PORT=5000 Drumpler_DEBUG=True`
 
 Replace `your_database_uri_here` and `your_authorization_key_here` with your actual database URI and desired authorization key.
 
 ## Running the Application
 
-To start the `noggin` API server:
-`python noggin.py`
+To start the `Drumpler` API server:
+`python drumpler.py`
 
 To initiate `mammoth` for processing jobs:
 `python mammoth.py`
@@ -61,7 +61,7 @@ The application exposes several endpoints for interacting with the system:
 
 ## Contributing
 
-Contributions to `Noggin` are welcome! Please follow the standard fork-branch-PR workflow.
+Contributions to `Drumpler` are welcome! Please follow the standard fork-branch-PR workflow.
 
 ## License
 

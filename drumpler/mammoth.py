@@ -9,7 +9,7 @@ from datetime import datetime, timezone
 from sqlalchemy import create_engine, Column, Integer, String, DateTime, ForeignKey, Text
 from sqlalchemy.orm import sessionmaker, relationship
 from sqlalchemy.orm import declarative_base
-from constants import DATABASE_URI, AUTHORIZATION_KEY, NOGGIN_URL, MAMMOTH_WORKERS
+from constants import DATABASE_URI, AUTHORIZATION_KEY, DRUMPLER_URL, MAMMOTH_WORKERS
 import signal
 
 Base = declarative_base()
@@ -38,8 +38,8 @@ Base.metadata.create_all(engine)
 Session = sessionmaker(bind=engine)
 
 class Mammoth:
-    def __init__(self, process_request_data, noggin_url=NOGGIN_URL, workers=MAMMOTH_WORKERS):
-        self.noggin_url = noggin_url
+    def __init__(self, process_request_data, drumpler_url=DRUMPLER_URL, workers=MAMMOTH_WORKERS):
+        self.drumpler_url = drumpler_url
         self.auth_key = AUTHORIZATION_KEY  # Default value if not set
         self.workers = workers if workers is not None else multiprocessing.cpu_count()
         self.stop_signal = threading.Event()  # Use an event to signal workers to stop
@@ -51,10 +51,10 @@ class Mammoth:
         session.commit()
         return True
 
-    def fetch_next_unhandled_request(self, session, noggin_url):
+    def fetch_next_unhandled_request(self, session, drumpler_url):
         headers = {"Authorization": f"Bearer {self.auth_key}"}
         try:
-            response = requests.get(f"{noggin_url}/request/next-unhandled", headers=headers)
+            response = requests.get(f"{drumpler_url}/request/next-unhandled", headers=headers)
             if response.status_code == 200:
                 data = response.json()
 
@@ -121,10 +121,10 @@ class Mammoth:
         return Session()
 
     def run(self):
-        def worker_task(session_factory, noggin_url, auth_key, stop_signal):
+        def worker_task(session_factory, drumpler_url, auth_key, stop_signal):
             session = session_factory()
             while not stop_signal.is_set():
-                request, job_id = self.fetch_next_unhandled_request(session, noggin_url)
+                request, job_id = self.fetch_next_unhandled_request(session, drumpler_url)
                 if request and job_id:
                     # Call the user-defined processing function
                     self.process_request_start(session, request, job_id)
@@ -142,7 +142,7 @@ class Mammoth:
 
         with ThreadPoolExecutor(max_workers=self.workers) as executor:
             for _ in range(self.workers):
-                executor.submit(worker_task, self.session_factory, self.noggin_url, self.auth_key, self.stop_signal)
+                executor.submit(worker_task, self.session_factory, self.drumpler_url, self.auth_key, self.stop_signal)
 
         # Restore the original SIGINT handler
         signal.signal(signal.SIGINT, original_sigint_handler)

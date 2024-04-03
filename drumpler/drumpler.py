@@ -1,7 +1,7 @@
 import os
 import sys
 from flask import Flask, request, jsonify
-from constants import NOGGIN_HOST, NOGGIN_PORT, NOGGIN_DEBUG, DATABASE_URI, AUTHORIZATION_KEY
+from constants import DRUMPLER_HOST, DRUMPLER_PORT, DRUMPLER_DEBUG, DATABASE_URI, AUTHORIZATION_KEY
 import json
 from flask_sqlalchemy import SQLAlchemy
 from request import Request as BaseRequest
@@ -23,8 +23,8 @@ class Request(db.Model, BaseRequest):
     is_handled = db.Column(db.Integer, default=0)
     is_being_processed = db.Column(db.Boolean, default=False)
 
-class Noggin:
-    def __init__(self, host=NOGGIN_HOST, port=NOGGIN_PORT, debug=NOGGIN_DEBUG):
+class Drumpler:
+    def __init__(self, host=DRUMPLER_HOST, port=DRUMPLER_PORT, debug=DRUMPLER_DEBUG):
         self.__init_env()
         self.app = Flask(__name__)
         self.DATABASE = 'requests.db'
@@ -148,5 +148,5 @@ class Noggin:
         app.run()
 
 if __name__ == '__main__':
-    noggin = Noggin()
+    noggin = Drumpler()
     noggin.run()
