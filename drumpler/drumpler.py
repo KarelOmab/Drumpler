@@ -1,10 +1,10 @@
 import os
 import sys
 from flask import Flask, request, jsonify
-from constants import DRUMPLER_HOST, DRUMPLER_PORT, DRUMPLER_DEBUG, DATABASE_URI, AUTHORIZATION_KEY
+from .constants import DRUMPLER_HOST, DRUMPLER_PORT, DRUMPLER_DEBUG, DATABASE_URI, AUTHORIZATION_KEY
 import json
 from flask_sqlalchemy import SQLAlchemy
-from request import Request as BaseRequest
+from .request import Request as BaseRequest
 
 app = Flask(__name__)
 
@@ -148,5 +148,5 @@ class Drumpler:
         app.run()
 
 if __name__ == '__main__':
-    noggin = Drumpler()
-    noggin.run()
+    drumpler = Drumpler()
+    drumpler.run()
