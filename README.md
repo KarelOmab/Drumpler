@@ -39,7 +39,7 @@ Drumpler_DEBUG=True
 
 Replace `your_database_uri_here` and `your_authorization_key_here` with your actual database URI and desired authorization key.
 
-## Using the Application
+## Using the Application - Drumpler
 
 To create a `Drumpler` RESTful server, the following is a sample implementation:
 ```
@@ -52,7 +52,7 @@ app = drumpler.Drumpler(host="0.0.0.0", port=5000, debug=True)  # Adjust as nece
 app.run()
 ```
 
-## API Endpoints (Drumpler)
+### API Endpoints
 
 Drumpler exposes the following endpoints for interacting with its system:
 
@@ -62,7 +62,8 @@ Drumpler exposes the following endpoints for interacting with its system:
 -   **PUT** `/request/<int:request_id>`: Update the status of a request.
 -   **DELETE** `/request/<int:request_id>`: Delete a specific request.
 
-To create a `Mammoth` processor, the following is a sample implementation:
+## Using the Application - Mammoth
+To create a `Mammoth` (request-processor), the following is a sample implementation:
 ```
 from drumpler.mammoth import Mammoth
 
