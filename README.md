@@ -6,23 +6,16 @@
 ## Features
 
 -   **RESTful API Endpoints**: Secure and scalable endpoints for handling HTTP requests, including POST, GET, PUT, and DELETE operations.
--   **Database Integration**: Utilizes SQLAlchemy for ORM-based interactions with the database, supporting a variety of database systems.
+-   **Database Integration**: Utilizes SQLAlchemy for ORM-based interactions with Postgres.
 -   **Job Processing**: Facilitates the asynchronous processing of tasks with support for multi-threading and multi-processing, ensuring efficient workflow automation.
--   **Event Logging**: Detailed event logging for each job processed, allowing for easy tracking and management of tasks.
+-   **Event Logging**: Detailed event logging for each HTTP request, job processing and related events, allowing for easy tracking and management of tasks.
 
 ## Prerequisites
 
 Before you begin, ensure you have the following installed:
 
 -   Python 3.6 or later
--   Flask
--   SQLAlchemy
--   Requests
-
-Additionally, you will need:
-
--   A PostgreSQL database or any SQL database supported by SQLAlchemy.
--   An `.env` file configured with your database URI and authorization key.
+-   PostgreSQL
 
 ## Installation
 
@@ -55,7 +48,7 @@ app = drumpler.Drumpler(host="0.0.0.0", port=5000, debug=True)
 app.run()
 ```
 
-## API Endpoints
+## API Endpoints (Drumpler)
 
 The application exposes several endpoints for interacting with the system:
 
