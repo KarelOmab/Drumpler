@@ -3,6 +3,10 @@
 
 `Drumpler` is a general-purpose application designed to facilitate efficient workflow automation through RESTful API interactions and job processing. Built on Flask and SQLAlchemy, this application serves as a robust backend for capturing, storing, and processing HTTP requests in a scalable manner. The application is split into two main components: `drumpler.py` for handling RESTful API requests and `mammoth.py` for querying the API and processing jobs asynchronously.
 
+# High Level Overview
+
+![Image Description](https://github.com/KarelOmab/Drumpler/blob/main/model/Drumpler%20Framework.png?raw=true)
+
 ## Features
 
 -   **RESTful API Endpoints**: Secure and scalable endpoints for handling HTTP requests, including POST, GET, PUT, and DELETE operations.
