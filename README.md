@@ -41,12 +41,12 @@ Replace `your_database_uri_here` and `your_authorization_key_here` with your act
 
 ## Using the Application
 
-To start the `Drumpler` API server:
+To create a `Drumpler` RESTful server, the following is a sample implementation:
 ```
 import drumpler
 
 # Now, you can create an instance of the Drumpler class
-app = drumpler.Drumpler(host="0.0.0.0", port=5000, debug=True)
+app = drumpler.Drumpler(host="0.0.0.0", port=5000, debug=True)  # Adjust as necessary
 
 # And call the run method on this instance
 app.run()
@@ -54,13 +54,33 @@ app.run()
 
 ## API Endpoints (Drumpler)
 
-The application exposes several endpoints for interacting with the system:
+Drumpler exposes the following endpoints for interacting with its system:
 
 -   **POST** `/request`: Submit a new request for processing.
 -   **GET** `/request/<int:request_id>`: Retrieve a specific request by its ID.
 -   **GET** `/request/next-unhandled`: Fetch the next unhandled request.
 -   **PUT** `/request/<int:request_id>`: Update the status of a request.
 -   **DELETE** `/request/<int:request_id>`: Delete a specific request.
+
+To create a `Mammoth` processor, the following is a sample implementation:
+```
+from drumpler.mammoth import Mammoth
+
+def custom_process_function(session, request, job_id):
+    # this is the driver method for your customized workflow
+    pass
+
+# Initialize Mammoth
+DRUMPLER_HOST = "http://127.0.0.1"
+DRUMPLER_PORT = 5000  # Adjust the URL/port as necessary
+DRUMPLER_URL = f"{DRUMPLER_HOST}:{DRUMPLER_PORT}"  # Adjust the URL/port as necessary
+MAMMOTH_WORKERS = 1
+mammoth = Mammoth(process_request_data=custom_process_function, drumpler_url=DRUMPLER_URL, workers=MAMMOTH_WORKERS)
+
+if __name__ == "__main__":
+    print("Starting Mammoth... Press CTRL+C to stop.")
+    mammoth.run()
+```
 
 ## Contributing
 
