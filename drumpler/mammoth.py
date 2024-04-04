@@ -3,13 +3,13 @@ import time
 import json
 from concurrent.futures import ThreadPoolExecutor
 import multiprocessing
-from request import Request
+from .request import Request
 import threading
 from datetime import datetime, timezone
 from sqlalchemy import create_engine, Column, Integer, String, DateTime, ForeignKey, Text
 from sqlalchemy.orm import sessionmaker, relationship
 from sqlalchemy.orm import declarative_base
-from constants import DATABASE_URI, AUTHORIZATION_KEY, DRUMPLER_URL, MAMMOTH_WORKERS
+from .constants import DATABASE_URI, AUTHORIZATION_KEY, DRUMPLER_URL, MAMMOTH_WORKERS
 import signal
 
 Base = declarative_base()
