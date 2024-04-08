@@ -7,7 +7,6 @@ from flask_sqlalchemy import SQLAlchemy
 from .request import Request as BaseRequest
 
 app = Flask(__name__)
-
 app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URI
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
@@ -24,22 +23,35 @@ class Request(db.Model, BaseRequest):
     is_being_processed = db.Column(db.Boolean, default=False)
 
 class Drumpler:
-    def __init__(self, host=DRUMPLER_HOST, port=DRUMPLER_PORT, debug=DRUMPLER_DEBUG):
+    def __init__(self):
         self.__init_env()
         self.app = Flask(__name__)
         self.DATABASE = 'requests.db'
         self.AUTHORIZATION_KEY = AUTHORIZATION_KEY
-        self.host = host
-        self.port = port
-        self.debug = debug
+
+        # Fetching environment variables or using defaults
+        self.host = os.environ.get("DRUMPLER_HOST", DRUMPLER_HOST)
+        self.port = os.environ.get("DRUMPLER_PORT", DRUMPLER_PORT)
+        self.debug = os.environ.get("DRUMPLER_DEBUG",DRUMPLER_DEBUG)
+        
+        self.app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URI
+        self.app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+        # Initialize SQLAlchemy with the Flask app here instead of global scope
+        db.init_app(self.app)
+
+        with self.app.app_context():
+            db.create_all()  # Move database initialization here
+        
         self.__setup_routes()
 
     def __setup_routes(self):
-        app.add_url_rule('/request', view_func=self.__process_request, methods=['POST'])
-        app.add_url_rule('/request/<int:request_id>', view_func=self.__get_request, methods=['GET'])
-        app.add_url_rule('/request/next-unhandled', view_func=self.__get_next_unhandled_request, methods=['GET'])
-        app.add_url_rule('/request/<int:request_id>', view_func=self.__update_request, methods=['PUT'])
-        app.add_url_rule('/request/<int:request_id>', view_func=self.__delete_request, methods=['DELETE'])
+        self.app.add_url_rule('/', view_func=self.hello_world, methods=['GET'])
+        self.app.add_url_rule('/request', view_func=self.__process_request, methods=['POST'])
+        self.app.add_url_rule('/request/<int:request_id>', view_func=self.__get_request, methods=['GET'])
+        self.app.add_url_rule('/request/next-unhandled', view_func=self.__get_next_unhandled_request, methods=['GET'])
+        self.app.add_url_rule('/request/<int:request_id>', view_func=self.__update_request, methods=['PUT'])
+        self.app.add_url_rule('/request/<int:request_id>', view_func=self.__delete_request, methods=['DELETE'])
 
     def __init_env(self):
         if not os.path.exists(".env"):
@@ -48,7 +60,10 @@ class Drumpler:
     def __authorize_request(self):
         authorization = request.headers.get('Authorization')
         return authorization and authorization == f"Bearer {self.AUTHORIZATION_KEY}"
-            
+    
+    def hello_world(self):
+        return "Hello World"
+
     def __process_request(self):
         if not self.__authorize_request():
             return jsonify({"message": "Invalid or missing authorization"}), 401
@@ -141,10 +156,6 @@ class Drumpler:
             return jsonify({"message": "Request not found"}), 404
 
     def run(self):
-        with app.app_context():
-            db.create_all()  # Initialize the database tables within an application context
-            db.session.commit()
-            
         app.run(host=self.host, port=self.port, debug=self.debug)
 
 if __name__ == '__main__':
