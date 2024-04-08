@@ -30,11 +30,14 @@ Install Drumpler via pip:
 
 Create a `.env` file in the root directory of the application with the following contents:
 ```
-DATABASE_URI=your_database_uri_here 
-AUTHORIZATION_KEY=your_authorization_key_here 
-Drumpler_HOST=0.0.0.0 
-Drumpler_PORT=5000 
-Drumpler_DEBUG=True
+AUTHORIZATION_KEY=AUTH_KEY_HERE
+DRUMPLER_HOST=IP_HERE
+DRUMPLER_PORT=PORT_HERE
+DRUMPLER_DEBUG=BOOL_FLAG
+DB_NAME=DB_NAME_HERE
+DB_HOST=DB_HOST_HERE
+DB_USER=DB_USER_HERE
+DB_PASS=DB_PASS_HERE
 ```
 
 Replace `your_database_uri_here` and `your_authorization_key_here` with your actual database URI and desired authorization key.
