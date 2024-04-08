@@ -6,10 +6,10 @@ load_dotenv()  # Load environment variables from .env file
 AUTHORIZATION_KEY = os.getenv('AUTHORIZATION_KEY')
 
 # Load environment variables
-DRUMPLER_HOST = "http://127.0.0.1"
-DRUMPLER_PORT = 5000  # Adjust the URL/port as necessary
+DRUMPLER_HOST = os.getenv('DRUMPLER_HOST', "http://127.0.0.1")
+DRUMPLER_PORT = int(os.getenv('DRUMPLER_PORT', "5000"))
 DRUMPLER_URL = f"{DRUMPLER_HOST}:{DRUMPLER_PORT}"  # Adjust the URL/port as necessary
-DRUMPLER_DEBUG = True
+DRUMPLER_DEBUG = bool(os.getenv('DRUMPLER_DEBUG', "True"))
 MAMMOTH_WORKERS = 1
 
 DB_NAME = os.getenv('DB_NAME')
