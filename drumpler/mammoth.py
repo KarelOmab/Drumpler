@@ -72,6 +72,7 @@ class Mammoth:
                     method=data.get('method'),
                     request_url=data.get('request_url'),
                     request_raw=data.get('request_raw'),
+                    custom_value=data.get('custom_value'),
                     is_handled=data.get('is_handled')
                 ), job.id
             else:
@@ -131,7 +132,7 @@ class Mammoth:
                     process = self.user_process_request_data(session, request, job_id)
 
                     if process:
-                        request.mark_as_handled()
+                        request.mark_as_handled(drumpler_url)
                         self.process_request_complete(session, request, job_id)
 
             session.close()
