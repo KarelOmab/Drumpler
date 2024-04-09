@@ -5,7 +5,6 @@ from .constants import DRUMPLER_HOST, DRUMPLER_PORT, DRUMPLER_DEBUG, DATABASE_UR
 import json
 from flask_sqlalchemy import SQLAlchemy
 from .request import Request as BaseRequest
-from sqlalchemy import func
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URI
@@ -20,6 +19,7 @@ class Request(db.Model, BaseRequest):
     method = db.Column(db.String(8))
     request_url = db.Column(db.String(256))
     request_raw = db.Column(db.Text)
+    custom_value = db.Column(db.String(256))
     is_handled = db.Column(db.Integer, default=0)
     is_being_processed = db.Column(db.Boolean, default=False)
 
@@ -70,12 +70,15 @@ class Drumpler:
             return jsonify({"message": "Invalid or missing authorization"}), 401
 
         data = request.get_json() or {}  # Fallback to an empty dict if no JSON is provided
+        custom_value = request.args.get('custom_value', None)
+
         new_request = Request(
             source_ip=request.remote_addr,
             user_agent=request.user_agent.string,
             method=request.method,
             request_url=request.url,
-            request_raw=json.dumps(data)
+            request_raw=json.dumps(data),
+            custom_value=custom_value
         )
         db.session.add(new_request)
         db.session.commit()
@@ -83,14 +86,19 @@ class Drumpler:
     
     def __get_next_unhandled_request(self):
         with db.session.begin():
-            unhandled_request = db.session.query(Request)\
-                .filter(
-                    Request.is_handled == 0, 
-                    Request.is_being_processed == False,
-                    Request.request_url.like(func.concat(self.host, '%'))
-                )\
-            .order_by(Request.id)\
-            .with_for_update(skip_locked=True).first()
+            # Start with a base query
+            query = db.session.query(Request)\
+                .filter(Request.is_handled == 0, 
+                        Request.is_being_processed == False)
+
+            # Conditionally add the custom_value filter if it is provided
+            custom_value = request.args.get('custom_value', None)
+            if custom_value is not None:
+                query = query.filter(Request.custom_value == custom_value)
+
+            # Execute the query with ordering and locking
+            unhandled_request = query.order_by(Request.id)\
+                .with_for_update(skip_locked=True).first()
 
             if unhandled_request:
                 # Prepare data before committing the transaction
@@ -102,10 +110,11 @@ class Drumpler:
                     "method": unhandled_request.method,
                     "request_url": unhandled_request.request_url,
                     "request_raw": unhandled_request.request_raw,
+                    "custom_value": unhandled_request.custom_value,  # Include the custom field in the response
                     "is_handled": unhandled_request.is_handled
                 }
-                
-                # Now that we have all needed data, mark as being processed
+
+                # Mark the request as being processed
                 unhandled_request.is_being_processed = True
                 # Commit is done by the context manager upon exit
 
@@ -129,6 +138,7 @@ class Drumpler:
                 "method": request_entry.method,
                 "request_url": request_entry.request_url,
                 "request_raw": json.loads(request_entry.request_raw),
+                "custom_value": request_entry.custom_value,
                 "is_handled": request_entry.is_handled
             }), 200
         else:
