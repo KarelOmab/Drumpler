@@ -15,7 +15,7 @@ class Request:
         self.custom_value = custom_value
         self._is_handled = is_handled
 
-    def mark_as_handled(self, drumpler_url):
+    def mark_as_handled(self):
         headers = {
             'Authorization': f'Bearer {AUTHORIZATION_KEY}',
             'Content-Type': 'application/json'  # Indicate JSON payload
@@ -25,7 +25,7 @@ class Request:
         }
 
         try:
-            response = requests.put(f"{drumpler_url}/request/{self.id}", json=payload, headers=headers)
+            response = requests.put(f"{DRUMPLER_URL}/request/{self.id}", json=payload, headers=headers)
             if response.status_code == 200:
                 return f"Request {self.id} marked as handled successfully."
             else:
