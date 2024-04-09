@@ -5,6 +5,7 @@ from .constants import DRUMPLER_HOST, DRUMPLER_PORT, DRUMPLER_DEBUG, DATABASE_UR
 import json
 from flask_sqlalchemy import SQLAlchemy
 from .request import Request as BaseRequest
+from sqlalchemy import func
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URI
@@ -83,9 +84,13 @@ class Drumpler:
     def __get_next_unhandled_request(self):
         with db.session.begin():
             unhandled_request = db.session.query(Request)\
-                .filter_by(is_handled=0, is_being_processed=False)\
-                .order_by(Request.id)\
-                .with_for_update(skip_locked=True).first()
+                .filter(
+                    Request.is_handled == 0, 
+                    Request.is_being_processed == False,
+                    Request.request_url.like(func.concat(self.host, '%'))
+                )\
+            .order_by(Request.id)\
+            .with_for_update(skip_locked=True).first()
 
             if unhandled_request:
                 # Prepare data before committing the transaction
