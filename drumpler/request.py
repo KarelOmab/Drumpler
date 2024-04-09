@@ -3,7 +3,7 @@ import json
 from .constants import DRUMPLER_URL, AUTHORIZATION_KEY
 
 class Request:
-    def __init__(self, id, timestamp, source_ip, user_agent, method, request_url, request_raw, is_handled):
+    def __init__(self, id, timestamp, source_ip, user_agent, method, request_url, request_raw, custom_value, is_handled):
         self._id = id
         self._timestamp = timestamp
         self._source_ip = source_ip
@@ -12,9 +12,10 @@ class Request:
         self._request_url = request_url
         self._request_raw = request_raw
         self._request_json = json.loads(request_raw)
+        self.custom_value = custom_value
         self._is_handled = is_handled
 
-    def mark_as_handled(self):
+    def mark_as_handled(self, drumpler_url):
         headers = {
             'Authorization': f'Bearer {AUTHORIZATION_KEY}',
             'Content-Type': 'application/json'  # Indicate JSON payload
@@ -24,7 +25,7 @@ class Request:
         }
 
         try:
-            response = requests.put(f"{DRUMPLER_URL}/request/{self.id}", json=payload, headers=headers)
+            response = requests.put(f"{drumpler_url}/request/{self.id}", json=payload, headers=headers)
             if response.status_code == 200:
                 return f"Request {self.id} marked as handled successfully."
             else:
