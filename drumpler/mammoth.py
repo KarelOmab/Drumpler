@@ -47,10 +47,15 @@ class Mammoth:
         self.custom_value = custom_value
 
     def insert_event(self, session, job_id, message):
-        start_event = Event(job_id=job_id, message=message)
-        session.add(start_event)
-        session.commit()
-        return True
+        try:
+            start_event = Event(job_id=job_id, message=message)
+            session.add(start_event)
+            session.commit()
+            return True
+        except Exception as e:
+            print(f"Exception inserting event for job {job_id}: {e}")
+            session.rollback()  # Ensure the session is rolled back on error
+            return False
 
     def fetch_next_unhandled_request(self, session):
         headers = {"Authorization": f"Bearer {self.auth_key}"}
@@ -87,39 +92,49 @@ class Mammoth:
         except requests.exceptions.RequestException as e:
             print("Error fetching unhandled request:", e)
             return None, None
-
+        
     def process_request_start(self, session, request, job_id):
         if request.request_raw:
-            payload = json.loads(request.request_raw)
-            thread_id = threading.get_ident()  # Get the current thread's identifier
+            try:
+                payload = json.loads(request.request_raw)
+                thread_id = threading.get_ident()  # Get the current thread's identifier
+                
+                # Log the start of processing as an event
+                start_event = Event(job_id=job_id, message=f'Started processing job:{job_id}, originated from request {request.id}.')
+                session.add(start_event)
+                session.commit()
             
-            # Log the start of processing as an event
-            start_event = Event(job_id=job_id, message=f'Started processing job:{job_id}, originated from request {request.id}.')
-            session.add(start_event)
-            session.commit()
-            
-            return True
+                return True
+            except Exception as e:
+                print(f"Exception in process_request_start for job {job_id}: {e}")
+                self.insert_event(session, job_id, f"Exception in process_request_start: {e}")
+        
         return False
     
     def process_request_complete(self, session, request, job_id):
         if request.request_raw:
-            payload = json.loads(request.request_raw)
-            thread_id = threading.get_ident()  # Get the current thread's identifier
-            
-            # Mark job as completed
-            job = session.query(Job).filter(Job.id == job_id).first()
-            if job:
-                job.status = 'Completed'
-                job.finished_date = datetime.now(timezone.utc)
-                session.add(job)
-            
-            # Log the completion of processing as an event
-            completion_event = Event(job_id=job_id, message=f'Completed processing job:{job_id}, originated from request {request.id}.')
-            session.add(completion_event)
+            try:
+                payload = json.loads(request.request_raw)
+                thread_id = threading.get_ident()  # Get the current thread's identifier
+                
+                # Mark job as completed
+                job = session.query(Job).filter(Job.id == job_id).first()
+                if job:
+                    job.status = 'Completed'
+                    job.finished_date = datetime.now(timezone.utc)
+                    session.add(job)
+                
+                # Log the completion of processing as an event
+                completion_event = Event(job_id=job_id, message=f'Completed processing job:{job_id}, originated from request {request.id}.')
+                session.add(completion_event)
 
-            session.commit()
-            
-            return True
+                session.commit()
+                
+                return True
+            except Exception as e:
+                print(f"Exception in process_request_complete for job {job_id}: {e}")
+                self.insert_event(session, job_id, f"Exception in process_request_complete: {e}")
+        
         return False
 
     def session_factory(self):
@@ -129,18 +144,23 @@ class Mammoth:
     def run(self):
         def worker_task(session_factory, drumpler_url, auth_key, stop_signal):
             session = session_factory()
-            while not stop_signal.is_set():
-                request, job_id = self.fetch_next_unhandled_request(session)
-                if request and job_id:
-                    # Call the user-defined processing function
-                    self.process_request_start(session, request, job_id)
-                    process = self.user_process_request_data(session, request, job_id)
-
-                    if process:
-                        request.mark_as_handled()
-                        self.process_request_complete(session, request, job_id)
-
-            session.close()
+            try:
+                while not stop_signal.is_set():
+                    request, job_id = self.fetch_next_unhandled_request(session)
+                    if request and job_id:
+                        # Additional logging here
+                        print(f"Processing request {request.id}, job {job_id}")
+                        self.process_request_start(session, request, job_id)
+                        process = self.user_process_request_data(session, request, job_id)
+                        if process:
+                            request.mark_as_handled()
+                            self.process_request_complete(session, request, job_id)
+            except Exception as e:
+                print(f"Exception in worker_task: {e}")
+                # Consider setting stop_signal here if you want to stop all workers on error
+                self.insert_event(session, -1, f"Exception in worker_task: {e}")
+            finally:
+                session.close()
 
         # Set up signal handling to catch CTRL+C
         original_sigint_handler = signal.getsignal(signal.SIGINT)
