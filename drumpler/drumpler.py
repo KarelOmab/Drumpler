@@ -138,13 +138,14 @@ class Drumpler:
                 return jsonify({"message": "Job not found"}), 404
 
     def __mark_request_as_handled(self, job_id):
-        job = SqlJob.query.get(job_id)
-        if job:
-            request = SqlRequest.query.get(job.request_id)
-            request.is_handled = 1
-            db.session.commit()
-            return jsonify({"message": "Request marked as handled"}), 200
-        return jsonify({"message": "Job or request not found"}), 404
+        with self.app.app_context():  # Ensure the application context is being used
+            job = SqlJob.query.get(job_id)
+            if job:
+                request = SqlRequest.query.get(job.request_id)
+                request.is_handled = 1
+                db.session.commit()
+                return jsonify({"message": "Request marked as handled"}), 200
+            return jsonify({"message": "Job or request not found"}), 404
 
     def __get_request(self, request_id):
         if not self.__authorize_request():
