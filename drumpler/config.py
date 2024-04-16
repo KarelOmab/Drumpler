@@ -4,7 +4,7 @@ from dotenv import load_dotenv
 
 load_dotenv('/home/sammy/drumpler/.env')  # Use an appropriate path
 
-class ConfigDrumpler:
+class Config:
     AUTHORIZATION_KEY = os.getenv('AUTHORIZATION_KEY')
     DRUMPLER_HOST = os.getenv('DRUMPLER_HOST', "http://127.0.0.1")
     DRUMPLER_PORT = int(os.getenv('DRUMPLER_PORT', "5000"))
@@ -13,7 +13,7 @@ class ConfigDrumpler:
 
     @staticmethod
     def drumpler_url():
-        if ConfigDrumpler.DRUMPLER_HOST.startswith("https") or ConfigDrumpler.DRUMPLER_PORT == 443:
-            return f"{ConfigDrumpler.DRUMPLER_HOST}"
+        if Config.DRUMPLER_HOST.startswith("https") or Config.DRUMPLER_PORT == 443:
+            return f"{Config.DRUMPLER_HOST}"
         else:
-            return f"{ConfigDrumpler.DRUMPLER_HOST}:{ConfigDrumpler.DRUMPLER_PORT}"
+            return f"{Config.DRUMPLER_HOST}:{Config.DRUMPLER_PORT}"

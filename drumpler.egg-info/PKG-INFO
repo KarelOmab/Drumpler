@@ -1,6 +1,6 @@
 Metadata-Version: 2.1
 Name: Drumpler
-Version: 2.0.1
+Version: 2.1.0
 Summary: Framework for rapidly developing a restful API that requires post processing
 Home-page: https://github.com/KarelOmab/Drumpler
 Author: Karel Tutsu
@@ -15,8 +15,6 @@ Requires-Dist: Flask
 Requires-Dist: python-dotenv
 Requires-Dist: SQLAlchemy
 Requires-Dist: Flask_SQLAlchemy
-Requires-Dist: requests
-Requires-Dist: schedule
 Requires-Dist: psycopg2-binary
 
 

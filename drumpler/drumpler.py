@@ -1,9 +1,10 @@
 # drumpler.py
 import os
 import json
+import sys
 from flask import Flask, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
-from .config_drumpler import ConfigDrumpler
+from .config import Config
 from .sql_base import Base  # Import the Base declarative class directly
 from .sql_request import SqlRequest
 from .sql_job import SqlJob
@@ -15,17 +16,18 @@ db = SQLAlchemy()
 class Drumpler:
     def __init__(self):
         self.app = app  # Use the global app instance
+        self.__init_env()
         self.__init_config()
         self.__init_db()
         self.__setup_routes()
 
     def __init_config(self):
-        self.app.config['SQLALCHEMY_DATABASE_URI'] = ConfigDrumpler.DATABASE_URI
+        self.app.config['SQLALCHEMY_DATABASE_URI'] = Config.DATABASE_URI
         self.app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-        self.AUTHORIZATION_KEY = ConfigDrumpler.AUTHORIZATION_KEY
-        self.host = ConfigDrumpler.DRUMPLER_HOST
-        self.port = ConfigDrumpler.DRUMPLER_PORT
-        self.debug = ConfigDrumpler.DRUMPLER_DEBUG
+        self.AUTHORIZATION_KEY = Config.AUTHORIZATION_KEY
+        self.host = Config.DRUMPLER_HOST
+        self.port = Config.DRUMPLER_PORT
+        self.debug = Config.DRUMPLER_DEBUG
 
     def __init_db(self):
         db.init_app(self.app)  # Initialize SQLAlchemy with app
@@ -39,7 +41,6 @@ class Drumpler:
         self.app.add_url_rule('/request/next-unhandled', view_func=self.__get_next_unhandled_request, methods=['GET'])
         self.app.add_url_rule('/request/<int:request_id>', view_func=self.__update_request, methods=['PUT'])
         self.app.add_url_rule('/request/<int:request_id>', view_func=self.__delete_request, methods=['DELETE'])
-        self.app.add_url_rule('/jobs', view_func=self.__create_job, methods=['POST'])
         self.app.add_url_rule('/jobs/<int:job_id>', view_func=self.__update_job, methods=['PUT'])
         self.app.add_url_rule('/events', view_func=self.__create_event, methods=['POST'])
 
@@ -70,9 +71,21 @@ class Drumpler:
             custom_value=custom_value
         )
         db.session.add(new_request)
-        db.session.commit()
-        return jsonify({"message": "Request processed successfully", "id": new_request.id}), 200
-    
+        db.session.flush()  # Flush here to assign an ID to new_request without committing the transaction
+
+        if custom_value:
+            # do more stuff
+            new_job = SqlJob(
+                request_id=new_request.id,  # Now new_request.id should be available
+                status='Pending'
+            )
+            db.session.add(new_job)
+            db.session.commit()
+            return jsonify({"message": "Request processed successfully", "id": new_request.id, "job_id": new_job.id}), 200
+        else:
+            db.session.commit()
+            return jsonify({"message": "Request processed successfully", "id": new_request.id}), 200
+
     def __get_next_unhandled_request(self):
         with db.session.begin():
             query = db.session.query(SqlRequest)\

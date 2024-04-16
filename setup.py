@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='Drumpler',
-    version='2.0.1',
+    version='2.1.0',
     author='Karel Tutsu',
     author_email='karel.tutsu@gmail.com',
     description='Framework for rapidly developing a restful API that requires post processing',
@@ -21,8 +21,6 @@ setup(
         'python-dotenv',
         'SQLAlchemy',
         'Flask_SQLAlchemy',
-        'requests',
-        'schedule',
         'psycopg2-binary',
     ],
 )

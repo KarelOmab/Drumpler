@@ -7,11 +7,8 @@ Drumpler.egg-info/dependency_links.txt
 Drumpler.egg-info/requires.txt
 Drumpler.egg-info/top_level.txt
 drumpler/__init__.py
-drumpler/config_drumpler.py
-drumpler/config_mammoth.py
+drumpler/config.py
 drumpler/drumpler.py
-drumpler/http_request.py
-drumpler/mammoth.py
 drumpler/sql_base.py
 drumpler/sql_event.py
 drumpler/sql_job.py

@@ -2,6 +2,4 @@ Flask
 python-dotenv
 sqlalchemy 
 flask_sqlalchemy
-requests 
-schedule
 psycopg2-binary
