@@ -24,6 +24,10 @@ class Drumpler:
     def __init_config(self):
         self.app.config['SQLALCHEMY_DATABASE_URI'] = Config.DATABASE_URI
         self.app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+        self.app.config['SQLALCHEMY_POOL_SIZE'] = 10
+        self.app.config['SQLALCHEMY_MAX_OVERFLOW'] = 5
+        self.app.config['SQLALCHEMY_POOL_TIMEOUT'] = 30
+        self.app.config['SQLALCHEMY_POOL_RECYCLE'] = 1800
         self.AUTHORIZATION_KEY = Config.AUTHORIZATION_KEY
         self.host = Config.DRUMPLER_HOST
         self.port = Config.DRUMPLER_PORT
