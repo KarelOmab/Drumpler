@@ -1,180 +1,83 @@
 import requests
-import time
 import json
+import threading
 from concurrent.futures import ThreadPoolExecutor
 import multiprocessing
-from .request import Request
-import threading
-from datetime import datetime, timezone
-from sqlalchemy import create_engine, Column, Integer, String, DateTime, ForeignKey, Text
-from sqlalchemy.orm import sessionmaker, relationship
-from sqlalchemy.orm import declarative_base
-from .constants import DATABASE_URI, AUTHORIZATION_KEY, DRUMPLER_URL
-import signal
-
-Base = declarative_base()
-
-class Job(Base):
-    __tablename__ = 'jobs'
-    id = Column(Integer, primary_key=True)
-    request_id = Column(Integer, nullable=False)
-    created_date = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
-    modified_date = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
-    finished_date = Column(DateTime(timezone=True))
-    status = Column(String)
-
-    events = relationship("Event", backref="job")
-
-class Event(Base):
-    __tablename__ = 'events'
-    id = Column(Integer, primary_key=True)
-    job_id = Column(Integer, ForeignKey('jobs.id'), nullable=False)
-    timestamp = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
-    message = Column(Text)  # Use Text for potentially longer messages
-
-engine = create_engine(DATABASE_URI)
-Base.metadata.create_all(engine)
-
-Session = sessionmaker(bind=engine)
+from .http_request import HttpRequest  # Make sure to import your HttpRequest class
+from .config_mammoth import ConfigMammoth
 
 class Mammoth:
-    def __init__(self, process_request_data, drumpler_url=DRUMPLER_URL, workers=1, custom_value=None):
+    def __init__(self, process_request_data, drumpler_url=ConfigMammoth.DRUMPLER_URL, workers=1, custom_value=None):
         self.drumpler_url = drumpler_url
-        self.auth_key = AUTHORIZATION_KEY  # Default value if not set
+        self.auth_key = ConfigMammoth.AUTHORIZATION_KEY  # Default value if not set
         self.workers = workers if workers is not None else multiprocessing.cpu_count()
         self.stop_signal = threading.Event()  # Use an event to signal workers to stop
         self.user_process_request_data = process_request_data
         self.custom_value = custom_value
 
-    def insert_event(self, session, job_id, message):
-        try:
-            start_event = Event(job_id=job_id, message=message)
-            session.add(start_event)
-            session.commit()
-            return True
-        except Exception as e:
-            print(f"Exception inserting event for job {job_id}: {e}")
-            session.rollback()  # Ensure the session is rolled back on error
-            return False
-
-    def fetch_next_unhandled_request(self, session):
+    def fetch_next_unhandled_request(self):
         headers = {"Authorization": f"Bearer {self.auth_key}"}
-        try:
-            if self.custom_value:
-                response = requests.get(f"{DRUMPLER_URL}/request/next-unhandled?custom_value={self.custom_value}", headers=headers)
-            else:
-                response = requests.get(f"{DRUMPLER_URL}/request/next-unhandled", headers=headers)
+        params = {'custom_value': self.custom_value} if self.custom_value else {}
+        response = requests.get(f"{self.drumpler_url}/request/next-unhandled", headers=headers, params=params)
 
-            if response.status_code == 200:
-                data = response.json()
+        if response.status_code == 200:
+            data = response.json()
+            return HttpRequest(
+                id=data['id'],
+                timestamp=data['timestamp'],
+                source_ip=data['source_ip'],
+                user_agent=data['user_agent'],
+                method=data['method'],
+                request_url=data['request_url'],
+                request_raw=json.dumps(data['request_raw']),
+                custom_value=data['custom_value'],
+                is_handled=data['is_handled']
+            )
+        else:
+            print(f"Failed to fetch unhandled request: {response.status_code}")
+            return None
 
-                # Create a Job record
-                job = Job(request_id=data.get('id'), status='Pending')
-                session.add(job)
-                session.commit()
-
-                # Return both the Request and Job ID for further processing
-                return Request(
-                    id=data.get('id'),
-                    timestamp=data.get('timestamp'),  
-                    source_ip=data.get('source_ip'),
-                    user_agent=data.get('user_agent'),
-                    method=data.get('method'),
-                    request_url=data.get('request_url'),
-                    request_raw=data.get('request_raw'),
-                    custom_value=data.get('custom_value'),
-                    is_handled=data.get('is_handled')
-                ), job.id
-            else:
-                print("Failed to fetch unhandled request:", response.status_code)
-                time.sleep(5)
-                return None, None
-        except requests.exceptions.RequestException as e:
-            print("Error fetching unhandled request:", e)
-            return None, None
-        
-    def process_request_start(self, session, request, job_id):
-        if request.request_raw:
-            try:
-                payload = json.loads(request.request_raw)
-                thread_id = threading.get_ident()  # Get the current thread's identifier
-                
-                # Log the start of processing as an event
-                start_event = Event(job_id=job_id, message=f'Started processing job:{job_id}, originated from request {request.id}.')
-                session.add(start_event)
-                session.commit()
-            
-                return True
-            except Exception as e:
-                print(f"Exception in process_request_start for job {job_id}: {e}")
-                self.insert_event(session, job_id, f"Exception in process_request_start: {e}")
-        
-        return False
-    
-    def process_request_complete(self, session, request, job_id):
-        if request.request_raw:
-            try:
-                payload = json.loads(request.request_raw)
-                thread_id = threading.get_ident()  # Get the current thread's identifier
-                
-                # Mark job as completed
-                job = session.query(Job).filter(Job.id == job_id).first()
-                if job:
-                    job.status = 'Completed'
-                    job.finished_date = datetime.now(timezone.utc)
-                    session.add(job)
-                
-                # Log the completion of processing as an event
-                completion_event = Event(job_id=job_id, message=f'Completed processing job:{job_id}, originated from request {request.id}.')
-                session.add(completion_event)
-
-                session.commit()
-                
-                return True
-            except Exception as e:
-                print(f"Exception in process_request_complete for job {job_id}: {e}")
-                self.insert_event(session, job_id, f"Exception in process_request_complete: {e}")
-        
-        return False
-
-    def session_factory(self):
-        # Factory method to create a new SQLAlchemy session
-        return Session()
+    def insert_event(self, job_id, message):
+        headers = {"Authorization": f"Bearer {self.auth_key}"}
+        event_data = {
+            "job_id": job_id,
+            "message": message
+        }
+        response = requests.post(f"{self.drumpler_url}/events", json=event_data, headers=headers)
+        if response.status_code == 201:
+            print(f"Event logged successfully for job {job_id}")
+        else:
+            print(f"Failed to log event for job {job_id}: {response.status_code}")
 
     def run(self):
-        def worker_task(session_factory, drumpler_url, auth_key, stop_signal):
-            session = session_factory()
-            try:
-                while not stop_signal.is_set():
-                    request, job_id = self.fetch_next_unhandled_request(session)
-                    if request and job_id:
-                        # Additional logging here
-                        print(f"Processing request {request.id}, job {job_id}")
-                        self.process_request_start(session, request, job_id)
-                        process = self.user_process_request_data(session, request, job_id)
-                        if process:
-                            request.mark_as_handled()
-                            self.process_request_complete(session, request, job_id)
-            except Exception as e:
-                print(f"Exception in worker_task: {e}")
-                # Consider setting stop_signal here if you want to stop all workers on error
-                self.insert_event(session, -1, f"Exception in worker_task: {e}")
-            finally:
-                session.close()
-
-        # Set up signal handling to catch CTRL+C
-        original_sigint_handler = signal.getsignal(signal.SIGINT)
-        signal.signal(signal.SIGINT, lambda sig, frame: self.stop_signal.set())
-
         with ThreadPoolExecutor(max_workers=self.workers) as executor:
-            for _ in range(self.workers):
-                executor.submit(worker_task, self.session_factory, self.drumpler_url, self.auth_key, self.stop_signal)
+            executor.submit(self.worker_task)
 
-        # Restore the original SIGINT handler
-        signal.signal(signal.SIGINT, original_sigint_handler)
-        print("All workers have been stopped.")
+    def worker_task(self):
+        while not self.stop_signal.is_set():
+            request = self.fetch_next_unhandled_request()
+            if request:
+                print(f"Processing request {request.id}")
+                if self.user_process_request_data(request):
+                    result = request.mark_as_handled()
+                    print(result)
+                    self.insert_event(request.id, "Request processed successfully")
+                else:
+                    self.insert_event(request.id, "Failed to process request")
 
-#if __name__ == "__main__":
-#    mammoth_app = Mammoth()
-#    print("Starting Mammoth application...")
-#    mammoth_app.run()
+        # Clean up or finish tasks
+        print("Worker task ended.")
+
+    def stop(self):
+        self.stop_signal.set()
+
+# Setup signal handling to gracefully handle shutdowns
+if __name__ == "__main__":
+    mammoth = Mammoth(process_request_data=lambda req: True)  # Sample process_request_data function
+    print("Starting Mammoth application...")
+    try:
+        mammoth.run()
+    except KeyboardInterrupt:
+        print("Shutdown signal received")
+        mammoth.stop()
+        print("Mammoth application stopped gracefully")

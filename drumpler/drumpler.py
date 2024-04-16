@@ -1,50 +1,36 @@
+# drumpler.py
 import os
-import sys
-from flask import Flask, request, jsonify
-from .constants import DRUMPLER_HOST, DRUMPLER_PORT, DRUMPLER_DEBUG, DATABASE_URI, AUTHORIZATION_KEY
 import json
+from flask import Flask, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
-from .request import Request as BaseRequest
+from .config_drumpler import ConfigDrumpler
+from .sql_base import Base  # Import the Base declarative class directly
+from .sql_request import SqlRequest
+from .sql_job import SqlJob
+from .sql_event import SqlEvent
 
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URI
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-db = SQLAlchemy(app)
-
-class Request(db.Model, BaseRequest):
-    id = db.Column(db.Integer, primary_key=True)
-    timestamp = db.Column(db.DateTime, default=db.func.current_timestamp())
-    source_ip = db.Column(db.String(128))
-    user_agent = db.Column(db.String(256))
-    method = db.Column(db.String(8))
-    request_url = db.Column(db.String(256))
-    request_raw = db.Column(db.Text)
-    custom_value = db.Column(db.String(256))
-    is_handled = db.Column(db.Integer, default=0)
-    is_being_processed = db.Column(db.Boolean, default=False)
+db = SQLAlchemy()
 
 class Drumpler:
     def __init__(self):
-        self.__init_env()
-        self.app = Flask(__name__)
-        self.DATABASE = 'requests.db'
-        self.AUTHORIZATION_KEY = AUTHORIZATION_KEY
-
-        # Fetching environment variables or using defaults
-        self.host = os.environ.get("DRUMPLER_HOST", DRUMPLER_HOST)
-        self.port = os.environ.get("DRUMPLER_PORT", DRUMPLER_PORT)
-        self.debug = os.environ.get("DRUMPLER_DEBUG",DRUMPLER_DEBUG)
-        
-        self.app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URI
-        self.app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-
-        # Initialize SQLAlchemy with the Flask app here instead of global scope
-        db.init_app(self.app)
-
-        with self.app.app_context():
-            db.create_all()  # Move database initialization here
-        
+        self.app = app  # Use the global app instance
+        self.__init_config()
+        self.__init_db()
         self.__setup_routes()
+
+    def __init_config(self):
+        self.app.config['SQLALCHEMY_DATABASE_URI'] = ConfigDrumpler.DATABASE_URI
+        self.app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+        self.AUTHORIZATION_KEY = ConfigDrumpler.AUTHORIZATION_KEY
+        self.host = ConfigDrumpler.DRUMPLER_HOST
+        self.port = ConfigDrumpler.DRUMPLER_PORT
+        self.debug = ConfigDrumpler.DRUMPLER_DEBUG
+
+    def __init_db(self):
+        db.init_app(self.app)  # Initialize SQLAlchemy with app
+        with self.app.app_context():
+            Base.metadata.create_all(db.engine)  # Create tables from the same Base used in model definitions
 
     def __setup_routes(self):
         self.app.add_url_rule('/', view_func=self.hello_world, methods=['GET'])
@@ -53,6 +39,9 @@ class Drumpler:
         self.app.add_url_rule('/request/next-unhandled', view_func=self.__get_next_unhandled_request, methods=['GET'])
         self.app.add_url_rule('/request/<int:request_id>', view_func=self.__update_request, methods=['PUT'])
         self.app.add_url_rule('/request/<int:request_id>', view_func=self.__delete_request, methods=['DELETE'])
+        self.app.add_url_rule('/jobs', view_func=self.__create_job, methods=['POST'])
+        self.app.add_url_rule('/jobs/<int:job_id>', view_func=self.__update_job, methods=['PUT'])
+        self.app.add_url_rule('/events', view_func=self.__create_event, methods=['POST'])
 
     def __init_env(self):
         if not os.path.exists(".env"):
@@ -72,7 +61,7 @@ class Drumpler:
         data = request.get_json() or {}  # Fallback to an empty dict if no JSON is provided
         custom_value = request.args.get('custom_value', None)
 
-        new_request = Request(
+        new_request = SqlRequest(
             source_ip=request.remote_addr,
             user_agent=request.user_agent.string,
             method=request.method,
@@ -86,22 +75,16 @@ class Drumpler:
     
     def __get_next_unhandled_request(self):
         with db.session.begin():
-            # Start with a base query
-            query = db.session.query(Request)\
-                .filter(Request.is_handled == 0, 
-                        Request.is_being_processed == False)
-
-            # Conditionally add the custom_value filter if it is provided
+            query = db.session.query(SqlRequest)\
+                .filter(SqlRequest.is_handled == 0, 
+                        SqlRequest.is_being_processed == False)
             custom_value = request.args.get('custom_value', None)
             if custom_value is not None:
-                query = query.filter(Request.custom_value == custom_value)
-
-            # Execute the query with ordering and locking
-            unhandled_request = query.order_by(Request.id)\
+                query = query.filter(SqlRequest.custom_value == custom_value)
+            unhandled_request = query.order_by(SqlRequest.id)\
                 .with_for_update(skip_locked=True).first()
-
             if unhandled_request:
-                # Prepare data before committing the transaction
+                unhandled_request.is_being_processed = True
                 request_data = {
                     "id": unhandled_request.id,
                     "timestamp": unhandled_request.timestamp.isoformat(),
@@ -110,15 +93,9 @@ class Drumpler:
                     "method": unhandled_request.method,
                     "request_url": unhandled_request.request_url,
                     "request_raw": unhandled_request.request_raw,
-                    "custom_value": unhandled_request.custom_value,  # Include the custom field in the response
+                    "custom_value": unhandled_request.custom_value,
                     "is_handled": unhandled_request.is_handled
                 }
-
-                # Mark the request as being processed
-                unhandled_request.is_being_processed = True
-                # Commit is done by the context manager upon exit
-
-        # Return outside the context manager to avoid accessing the session
         if unhandled_request:
             return jsonify(request_data), 200
         else:
@@ -127,8 +104,7 @@ class Drumpler:
     def __get_request(self, request_id):
         if not self.__authorize_request():
             return jsonify({"message": "Invalid or missing authorization"}), 401
-
-        request_entry = Request.query.get(request_id)
+        request_entry = SqlRequest.query.get(request_id)
         if request_entry:
             return jsonify({
                 "id": request_entry.id,
@@ -147,12 +123,10 @@ class Drumpler:
     def __update_request(self, request_id):
         if not self.__authorize_request():
             return jsonify({"message": "Invalid or missing authorization"}), 401
-
-        data = request.get_json()
-        request_entry = Request.query.get(request_id)
+        request_entry = SqlRequest.query.get(request_id)
         if request_entry:
-            if 'is_handled' in data:
-                request_entry.is_handled = data['is_handled']
+            data = request.get_json()
+            request_entry.is_handled = data.get('is_handled', request_entry.is_handled)
             db.session.commit()
             return jsonify({"message": "Request updated successfully"}), 200
         else:
@@ -161,8 +135,7 @@ class Drumpler:
     def __delete_request(self, request_id):
         if not self.__authorize_request():
             return jsonify({"message": "Invalid or missing authorization"}), 401
-
-        request_entry = Request.query.get(request_id)
+        request_entry = SqlRequest.query.get(request_id)
         if request_entry:
             db.session.delete(request_entry)
             db.session.commit()
@@ -170,8 +143,40 @@ class Drumpler:
         else:
             return jsonify({"message": "Request not found"}), 404
 
+    def __create_job(self):
+        if not self.__authorize_request():
+            return jsonify({"message": "Unauthorized access"}), 401
+        data = request.get_json()
+        new_job = SqlJob(request_id=data['request_id'], status='Pending')
+        db.session.add(new_job)
+        db.session.commit()
+        return jsonify({'job_id': new_job.id}), 201
+
+    def __update_job(self, job_id):
+        if not self.__authorize_request():
+            return jsonify({"message": "Unauthorized access"}), 401
+        data = request.get_json()
+        job = SqlJob.query.get(job_id)
+        if job:
+            job.status = data.get('status', job.status)
+            job.finished_date = data.get('finished_date', job.finished_date)
+            db.session.commit()
+            return jsonify({"message": "Job updated successfully"}), 200
+        else:
+            return jsonify({"message": "Job not found"}), 404
+
+    def __create_event(self):
+        if not self.__authorize_request():
+            return jsonify({"message": "Unauthorized access"}), 401
+        data = request.get_json()
+        new_event = SqlEvent(job_id=data['job_id'], message=data['message'])
+        db.session.add(new_event)
+        db.session.commit()
+        return jsonify({'event_id': new_event.id}), 201
+
     def run(self):
         app.run(host=self.host, port=self.port, debug=self.debug)
+        #self.app.run()
 
 if __name__ == '__main__':
     drumpler = Drumpler()

@@ -2,7 +2,7 @@ import requests
 import json
 from .constants import DRUMPLER_URL, AUTHORIZATION_KEY
 
-class Request:
+class HttpRequest:
     def __init__(self, id, timestamp, source_ip, user_agent, method, request_url, request_raw, custom_value, is_handled):
         self._id = id
         self._timestamp = timestamp
