@@ -13,9 +13,4 @@ drumpler/sql_base.py
 drumpler/sql_event.py
 drumpler/sql_job.py
 drumpler/sql_request.py
-drumpler.egg-info/PKG-INFO
-drumpler.egg-info/SOURCES.txt
-drumpler.egg-info/dependency_links.txt
-drumpler.egg-info/requires.txt
-drumpler.egg-info/top_level.txt
 test/test_drumpler.py

@@ -13,4 +13,3 @@ class SqlRequest(Base):
     request_raw = Column(Text)
     custom_value = Column(String(256))
     is_handled = Column(Integer, default=0)
-    is_being_processed = Column(Boolean, default=False)

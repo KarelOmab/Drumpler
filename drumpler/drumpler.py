@@ -42,10 +42,12 @@ class Drumpler:
         self.app.add_url_rule('/', view_func=self.hello_world, methods=['GET'])
         self.app.add_url_rule('/request', view_func=self.__process_request, methods=['POST'])
         self.app.add_url_rule('/request/<int:request_id>', view_func=self.__get_request, methods=['GET'])
-        self.app.add_url_rule('/request/next-unhandled', view_func=self.__get_next_unhandled_request, methods=['GET'])
         self.app.add_url_rule('/request/<int:request_id>', view_func=self.__update_request, methods=['PUT'])
         self.app.add_url_rule('/request/<int:request_id>', view_func=self.__delete_request, methods=['DELETE'])
+        self.app.add_url_rule('/jobs/next-pending', view_func=self.__get_next_pending_job, methods=['GET'])
         self.app.add_url_rule('/jobs/<int:job_id>', view_func=self.__update_job, methods=['PUT'])
+        self.app.add_url_rule('/jobs/<int:job_id>/update-status', view_func=self.__update_job_status, methods=['PUT'])
+        self.app.add_url_rule('/jobs/<int:job_id>/mark-handled', view_func=self.__mark_request_as_handled, methods=['PUT'])
         self.app.add_url_rule('/events', view_func=self.__create_event, methods=['POST'])
 
     def __init_env(self):
@@ -90,33 +92,59 @@ class Drumpler:
             db.session.commit()
             return jsonify({"message": "Request processed successfully", "id": new_request.id}), 200
 
-    def __get_next_unhandled_request(self):
-        with db.session.begin():
-            query = db.session.query(SqlRequest)\
-                .filter(SqlRequest.is_handled == 0, 
-                        SqlRequest.is_being_processed == False)
-            custom_value = request.args.get('custom_value', None)
-            if custom_value is not None:
-                query = query.filter(SqlRequest.custom_value == custom_value)
-            unhandled_request = query.order_by(SqlRequest.id)\
-                .with_for_update(skip_locked=True).first()
-            if unhandled_request:
-                unhandled_request.is_being_processed = True
-                request_data = {
-                    "id": unhandled_request.id,
-                    "timestamp": unhandled_request.timestamp.isoformat(),
-                    "source_ip": unhandled_request.source_ip,
-                    "user_agent": unhandled_request.user_agent,
-                    "method": unhandled_request.method,
-                    "request_url": unhandled_request.request_url,
-                    "request_raw": unhandled_request.request_raw,
-                    "custom_value": unhandled_request.custom_value,
-                    "is_handled": unhandled_request.is_handled
-                }
-        if unhandled_request:
-            return jsonify(request_data), 200
-        else:
-            return jsonify({"message": "No unhandled requests found."}), 404
+    def __get_next_pending_job(self):
+        custom_value = request.args.get('custom_value', None)
+        try:
+            job = db.session.query(SqlJob, SqlRequest)\
+                .join(SqlRequest, SqlJob.request_id == SqlRequest.id)\
+                .filter(
+                    SqlJob.status == 'Pending',
+                    SqlRequest.custom_value == custom_value,
+                    SqlRequest.is_handled == 0
+                ).order_by(SqlJob.created_date).first()
+
+            if job:
+                job_data, request_data = job
+                # Mark job as being processed
+                job_data.is_being_processed = True  
+                db.session.commit()  # Commit changes explicitly
+                return jsonify({
+                    "job_id": job_data.id,
+                    "request_id": request_data.id,
+                    "source_ip": request_data.source_ip,
+                    "user_agent": request_data.user_agent,
+                    "method": request_data.method,
+                    "request_url": request_data.request_url,
+                    "request_raw": request_data.request_raw,
+                    "custom_value": request_data.custom_value
+                }), 200
+            else:
+                db.session.rollback()  # Rollback explicitly if nothing found
+                return jsonify({"message": "No pending jobs found."}), 404
+
+        except Exception as e:
+            db.session.rollback()  # Ensure rollback on exception
+            print(f"Exception occurred: {str(e)}")
+            return jsonify({"message": "Error occurred."}), 500
+        
+    def __update_job_status(self, job_id):
+        with self.app.app_context():  # Ensure the application context is being used
+            job = db.session.query(SqlJob).get(job_id)  # Use db.session.query
+            if job:
+                job.status = request.json.get('status', job.status)
+                db.session.commit()
+                return jsonify({"message": "Job status updated successfully"}), 200
+            else:
+                return jsonify({"message": "Job not found"}), 404
+
+    def __mark_request_as_handled(self, job_id):
+        job = SqlJob.query.get(job_id)
+        if job:
+            request = SqlRequest.query.get(job.request_id)
+            request.is_handled = 1
+            db.session.commit()
+            return jsonify({"message": "Request marked as handled"}), 200
+        return jsonify({"message": "Job or request not found"}), 404
 
     def __get_request(self, request_id):
         if not self.__authorize_request():
