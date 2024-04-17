@@ -1,10 +1,8 @@
-from datetime import datetime, timezone
-from sqlalchemy import Column, Integer, DateTime, ForeignKey, Text
-from .sql_base import Base  # Import the Base declarative class
+from .sql_base import db
 
-class SqlEvent(Base):
+class SqlEvent(db.Model):
     __tablename__ = 'events'
-    id = Column(Integer, primary_key=True)
-    job_id = Column(Integer, ForeignKey('jobs.id'), nullable=False)
-    timestamp = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
-    message = Column(Text)  # Use Text for potentially longer messages
+    id = db.Column(db.Integer, primary_key=True)
+    job_id = db.Column(db.Integer, db.ForeignKey('jobs.id'), nullable=False)
+    timestamp = db.Column(db.DateTime(timezone=True), default=db.func.current_timestamp())
+    message = db.Column(db.Text)

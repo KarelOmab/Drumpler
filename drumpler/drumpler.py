@@ -3,15 +3,16 @@ import json
 import sys
 import psutil
 from flask import Flask, request, jsonify
-from flask_sqlalchemy import SQLAlchemy
 from .config import Config
-from .sql_base import Base  # Import the Base declarative class directly
+from .sql_base import db, init_app  # Import db and the initialization function
 from .sql_request import SqlRequest
 from .sql_job import SqlJob
 from .sql_event import SqlEvent
 
 app = Flask(__name__)
-db = SQLAlchemy()
+app.config['SQLALCHEMY_DATABASE_URI'] = Config.DATABASE_URI
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+init_app(app)  # Initialize SQLAlchemy with the Flask app
 
 class Drumpler:
     def __init__(self):
@@ -31,22 +32,19 @@ class Drumpler:
         pool_timeout = 30  # Static setting, can adjust if needed
         pool_recycle = 1800  # Static setting, can adjust if needed
 
-        self.app.config['SQLALCHEMY_DATABASE_URI'] = Config.DATABASE_URI
-        self.app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
         self.app.config['SQLALCHEMY_POOL_SIZE'] = pool_size
         self.app.config['SQLALCHEMY_MAX_OVERFLOW'] = max_overflow
         self.app.config['SQLALCHEMY_POOL_TIMEOUT'] = pool_timeout
         self.app.config['SQLALCHEMY_POOL_RECYCLE'] = pool_recycle
-        
+
         self.AUTHORIZATION_KEY = Config.AUTHORIZATION_KEY
         self.host = Config.DRUMPLER_HOST
         self.port = Config.DRUMPLER_PORT
         self.debug = Config.DRUMPLER_DEBUG
 
     def __init_db(self):
-        db.init_app(self.app)  # Initialize SQLAlchemy with app
         with self.app.app_context():
-            Base.metadata.create_all(db.engine)  # Create tables from the same Base used in model definitions
+            db.create_all()  # Create tables based on the models if they don't exist
 
     def __setup_routes(self):
         self.app.add_url_rule('/', view_func=self.hello_world, methods=['GET'])
