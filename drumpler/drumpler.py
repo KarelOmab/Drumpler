@@ -1,7 +1,7 @@
-# drumpler.py
 import os
 import json
 import sys
+import psutil
 from flask import Flask, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from .config import Config
@@ -22,12 +22,22 @@ class Drumpler:
         self.__setup_routes()
 
     def __init_config(self):
+        cpu_cores = psutil.cpu_count()
+        total_memory_gb = psutil.virtual_memory().total / (1024 ** 3)
+
+        # Example dynamic settings based on system resources
+        pool_size = max(10, cpu_cores * 2)  # Starting at 10, increasing with more cores
+        max_overflow = max(5, int(pool_size * 0.5))  # 50% of pool_size
+        pool_timeout = 30  # Static setting, can adjust if needed
+        pool_recycle = 1800  # Static setting, can adjust if needed
+
         self.app.config['SQLALCHEMY_DATABASE_URI'] = Config.DATABASE_URI
         self.app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-        self.app.config['SQLALCHEMY_POOL_SIZE'] = 10
-        self.app.config['SQLALCHEMY_MAX_OVERFLOW'] = 5
-        self.app.config['SQLALCHEMY_POOL_TIMEOUT'] = 30
-        self.app.config['SQLALCHEMY_POOL_RECYCLE'] = 1800
+        self.app.config['SQLALCHEMY_POOL_SIZE'] = pool_size
+        self.app.config['SQLALCHEMY_MAX_OVERFLOW'] = max_overflow
+        self.app.config['SQLALCHEMY_POOL_TIMEOUT'] = pool_timeout
+        self.app.config['SQLALCHEMY_POOL_RECYCLE'] = pool_recycle
+        
         self.AUTHORIZATION_KEY = Config.AUTHORIZATION_KEY
         self.host = Config.DRUMPLER_HOST
         self.port = Config.DRUMPLER_PORT
