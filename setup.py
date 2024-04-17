@@ -22,5 +22,6 @@ setup(
         'SQLAlchemy',
         'Flask_SQLAlchemy',
         'psycopg2-binary',
+        'psutil'
     ],
 )
