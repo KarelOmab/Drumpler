@@ -7,6 +7,7 @@ Drumpler.egg-info/dependency_links.txt
 Drumpler.egg-info/requires.txt
 Drumpler.egg-info/top_level.txt
 drumpler/__init__.py
+drumpler/__version__.py
 drumpler/drumpler.py
 drumpler/sql_base.py
 drumpler/sql_event.py
