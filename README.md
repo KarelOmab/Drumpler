@@ -1,6 +1,6 @@
 # Drumpler
 
-`Drumpler` is a sophisticated backend framework designed for efficient workflow automation through RESTful API interactions and asynchronous job processing. Leveraging Flask and SQLAlchemy, `Drumpler` offers a robust platform for capturing, storing, and managing HTTP requests. 
+`Drumpler` is a sophisticated backend framework designed to rapdily develop RESTful APIs as well as facilitate asynchronous job processing via Drumpler-Mammoth package. Leveraging Flask and SQLAlchemy, `Drumpler` offers a robust platform for capturing, storing, and managing HTTP requests. 
 
 ## High Level Overview 
 The framework consists of two main components: 
