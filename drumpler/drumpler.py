@@ -1,28 +1,32 @@
-import os
 import json
-import sys
 import psutil
+from datetime import datetime, timezone
 from flask import Flask, request, jsonify
-from .config import Config
 from .sql_base import db, init_app  # Import db and the initialization function
 from .sql_request import SqlRequest
 from .sql_job import SqlJob
 from .sql_event import SqlEvent
 
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = Config.DATABASE_URI
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-init_app(app)  # Initialize SQLAlchemy with the Flask app
 
 class Drumpler:
-    def __init__(self):
+    def __init__(self, authorization_key, host="http://127.0.0.1", port=5000, debug=True, database_uri='sqlite:///default.db'):
         self.app = app  # Use the global app instance
-        self.__init_env()
+        self.authorization_key = authorization_key
+        self.host = host
+        self.port = port
+        self.debug = debug
+        self.database_uri = database_uri
+
         self.__init_config()
         self.__init_db()
         self.__setup_routes()
 
     def __init_config(self):
+        self.app.config['SQLALCHEMY_DATABASE_URI'] = self.database_uri
+        self.app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+        # set relative settings
         cpu_cores = psutil.cpu_count()
         total_memory_gb = psutil.virtual_memory().total / (1024 ** 3)
 
@@ -37,12 +41,8 @@ class Drumpler:
         self.app.config['SQLALCHEMY_POOL_TIMEOUT'] = pool_timeout
         self.app.config['SQLALCHEMY_POOL_RECYCLE'] = pool_recycle
 
-        self.AUTHORIZATION_KEY = Config.AUTHORIZATION_KEY
-        self.host = Config.DRUMPLER_HOST
-        self.port = Config.DRUMPLER_PORT
-        self.debug = Config.DRUMPLER_DEBUG
-
     def __init_db(self):
+        init_app(app)  # Initialize SQLAlchemy with the Flask app
         with self.app.app_context():
             db.create_all()  # Create tables based on the models if they don't exist
 
@@ -58,16 +58,12 @@ class Drumpler:
         self.app.add_url_rule('/jobs/<int:job_id>/mark-handled', view_func=self.__mark_request_as_handled, methods=['PUT'])
         self.app.add_url_rule('/events', view_func=self.__create_event, methods=['POST'])
 
-    def __init_env(self):
-        if not os.path.exists(".env"):
-            sys.exit("ERROR! You must create a .env file that contains a single line 'AUTHORIZATION_KEY=YourAuthorizationKeyHere'")
-
     def __authorize_request(self):
         authorization = request.headers.get('Authorization')
-        return authorization and authorization == f"Bearer {self.AUTHORIZATION_KEY}"
+        return authorization and authorization == f"Bearer {self.authorization_key}"
     
     def hello_world(self):
-        return "Hello World"
+        return "Hello Drumpler!"
 
     def __process_request(self):
         if not self.__authorize_request():
@@ -139,7 +135,13 @@ class Drumpler:
         with self.app.app_context():  # Ensure the application context is being used
             job = db.session.query(SqlJob).get(job_id)  # Use db.session.query
             if job:
-                job.status = request.json.get('status', job.status)
+                new_status = request.json.get('status')
+                job.status = new_status if new_status else job.status
+                job.modified_date = datetime.now(timezone.utc)  # Update the modified date to current timestamp
+
+                if job.status == "Completed":
+                    job.finished_date = datetime.now(timezone.utc)  # Set finished date if job is completed
+
                 db.session.commit()
                 return jsonify({"message": "Job status updated successfully"}), 200
             else:
@@ -197,15 +199,6 @@ class Drumpler:
         else:
             return jsonify({"message": "Request not found"}), 404
 
-    def __create_job(self):
-        if not self.__authorize_request():
-            return jsonify({"message": "Unauthorized access"}), 401
-        data = request.get_json()
-        new_job = SqlJob(request_id=data['request_id'], status='Pending')
-        db.session.add(new_job)
-        db.session.commit()
-        return jsonify({'job_id': new_job.id}), 201
-
     def __update_job(self, job_id):
         if not self.__authorize_request():
             return jsonify({"message": "Unauthorized access"}), 401
@@ -230,8 +223,13 @@ class Drumpler:
 
     def run(self):
         app.run(host=self.host, port=self.port, debug=self.debug)
-        #self.app.run()
 
 if __name__ == '__main__':
-    drumpler = Drumpler()
+    drumpler = Drumpler(
+        authorization_key="YourAuthorizationKey",
+        host="http://127.0.0.1",
+        port=5000,
+        debug=True,
+        database_uri='sqlite:///path_to_your_database.db'
+    )
     drumpler.run()
