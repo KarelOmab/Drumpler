@@ -1,6 +1,6 @@
 # Drumpler
 
-`Drumpler` is an advanced framework engineered to streamline the development of secure RESTful APIs that facilitate custom post-processing of incoming HTTP requests. Built on the robust foundations of Flask and SQLAlchemy, Drumpler not only captures and stores HTTP requests but also seamlessly integrates with PostgreSQL to ensure scalable data management. With Drumpler, you can focus on solely crafting the logic of your desired workflow while it handles the intricacies of API management and job orchestration through its companion component, Mammoth. Mammoth leverages the structure established by Drumpler to process queued jobs, allowing developers to specify custom workflow(s) that respond dynamically to incoming data.
+`Drumpler` is an advanced framework engineered to streamline the development of secure RESTful APIs that facilitate custom post-processing of incoming HTTP requests. Built on the robust foundations of Flask and SQLAlchemy, Drumpler not only captures and stores HTTP requests but also seamlessly integrates with PostgreSQL to ensure scalable data management. With Drumpler, you can focus on solely crafting the logic of your desired workflow while it handles the intricacies of API management and job orchestration through its companion component, Mammoth. [Mammoth](https://github.com/KarelOmab/Drumpler-Mammoth) leverages the structure established by Drumpler to process queued jobs, allowing developers to specify custom workflow(s) that respond dynamically to incoming data.
 
 ## High Level Overview 
 The framework consists of two main components: 
@@ -33,13 +33,13 @@ Although Drumpler will work out of the box with default configuration for localh
 
 ```
 AUTHORIZATION_KEY=AUTH_KEY_HERE	# expected Bearer Token value
-DRUMPLER_HOST=IP_HERE	#i.e. localhost
-DRUMPLER_PORT=PORT_HERE	#i.e. 5000
+DRUMPLER_HOST=IP_HERE	    #i.e. localhost
+DRUMPLER_PORT=PORT_HERE	    #i.e. 5000
 DRUMPLER_DEBUG=BOOL_FLAG	# True/False
-DB_NAME=DB_NAME_HERE	#i.e. drumpler
-DB_HOST=DB_HOST_HERE	#i.e. localhost
-DB_USER=DB_USER_HERE	#i.e. myuser
-DB_PASS=DB_PASS_HERE	#i.e. mypassword
+DB_NAME=DB_NAME_HERE	    #i.e. drumpler
+DB_HOST=DB_HOST_HERE	    #i.e. localhost
+DB_USER=DB_USER_HERE	    #i.e. myuser
+DB_PASS=DB_PASS_HERE	    #i.e. mypassword
 DATABASE_URI=postgresql://DB_USER_HERE:DB_PASS_HERE@DB_HOST_HERE/DB_NAME_HERE
 ```
 
@@ -149,8 +149,53 @@ if __name__ == "__main__":
 
 To create a `Mammoth` (job-processor), the following is a sample implementation:
 ```
-#TODO
+import  os
+from  drumpler_mammoth  import  Mammoth
+
+# comment 3 lines below if not using .env file
+from dotenv import load_dotenv #pip install python-dotenv
+dotenv_path = os.path.join(os.path.dirname(__file__), '.env')
+load_dotenv(dotenv_path)
+
+# Optional: Offline-logging mechanism is also shipped with Mammoth, feel free to use it
+#mammoth  =  None  # This global variable can be shared among all scopes
+
+def  custom_process_function(request) -> bool:
+	# I shall write my custom job-processing logic here
+
+	# offline logging
+	#mammoth.logger.info(f"I could utilize mammoth's logger for <info> messages") #optional
+	#mammoth.logger.error(f"I could utilize mammoth's logger for <error> messages") #optional
+	
+	# online logging
+	#mammoth.insert_event(request.job_id, "My event message goes here")
+
+	# I shall return True in a success-scenario or 	# => job.status = 'Completed'
+	# I shall return False in a failure-scenario	# => job.status = 'Error'
+
+	pass
+
+if  __name__  ==  "__main__":
+	# the constructor parameters are MANDATORY
+	drumpler_host  =  os.environ.get("DRUMPLER_HOST", "localhost")
+	authorization_key  =  os.environ.get("AUTHORIZATION_KEY", "AUTH_KEY_HERE")
+	custom_value  =  "ApplicationName"
+	num_workers  =  None  # None implies os.cpu_count(), otherwise you can manually specify
+
+	# initialize mammoth
+	mammoth  =  Mammoth(drumpler_url=drumpler_host, authorization_key=authorization_key, custom_value=custom_value, process_request_data=custom_process_function, num_workers=num_workers)
+
+	print("Starting Mammoth... Press CTRL+C to stop.")
+
+	try:
+		mammoth.run()
+	except  KeyboardInterrupt:
+		print("Shutdown signal received")
+		mammoth.stop()
+		print("Mammoth application stopped gracefully")
 ```
+
+Please visit [Mammoth's repository](https://github.com/KarelOmab/Drumpler-Mammoth) to learn more about it.
 
 ## Contributing
 Contributions to `Drumpler` are welcome! Please follow the standard fork-branch-PR workflow.
