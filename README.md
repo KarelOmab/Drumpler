@@ -161,38 +161,38 @@ load_dotenv(dotenv_path)
 #mammoth  =  None  # This global variable can be shared among all scopes
 
 def  custom_process_function(request) -> bool:
-	# I shall write my custom job-processing logic here
-
-	# offline logging
-	#mammoth.logger.info(f"I could utilize mammoth's logger for <info> messages") #optional
-	#mammoth.logger.error(f"I could utilize mammoth's logger for <error> messages") #optional
-	
-	# online logging
-	#mammoth.insert_event(request.job_id, "My event message goes here")
-
-	# I shall return True in a success-scenario or 	# => job.status = 'Completed'
-	# I shall return False in a failure-scenario	# => job.status = 'Error'
-
-	pass
+  # I shall write my custom job-processing logic here
+  
+  # offline logging
+  #mammoth.logger.info(f"I could utilize mammoth's logger for <info> messages") #optional
+  #mammoth.logger.error(f"I could utilize mammoth's logger for <error> messages") #optional
+  
+  # online logging
+  #mammoth.insert_event(request.job_id, "My event message goes here")
+  
+  # I shall return True in a success-scenario or 	# => job.status = 'Completed'
+  # I shall return False in a failure-scenario	# => job.status = 'Error'
+  
+  pass
 
 if  __name__  ==  "__main__":
-	# the constructor parameters are MANDATORY
-	drumpler_host  =  os.environ.get("DRUMPLER_HOST", "localhost")
-	authorization_key  =  os.environ.get("AUTHORIZATION_KEY", "AUTH_KEY_HERE")
-	custom_value  =  "ApplicationName"
-	num_workers  =  None  # None implies os.cpu_count(), otherwise you can manually specify
-
-	# initialize mammoth
-	mammoth  =  Mammoth(drumpler_url=drumpler_host, authorization_key=authorization_key, custom_value=custom_value, process_request_data=custom_process_function, num_workers=num_workers)
-
-	print("Starting Mammoth... Press CTRL+C to stop.")
-
-	try:
-		mammoth.run()
-	except  KeyboardInterrupt:
-		print("Shutdown signal received")
-		mammoth.stop()
-		print("Mammoth application stopped gracefully")
+  # the constructor parameters are MANDATORY
+  drumpler_host  =  os.environ.get("DRUMPLER_HOST", "localhost")
+  authorization_key  =  os.environ.get("AUTHORIZATION_KEY", "AUTH_KEY_HERE")
+  custom_value  =  "ApplicationName"
+  num_workers  =  None  # None implies os.cpu_count(), otherwise you can manually specify
+  
+  # initialize mammoth
+  mammoth  =  Mammoth(drumpler_url=drumpler_host, authorization_key=authorization_key, custom_value=custom_value,   process_request_data=custom_process_function, num_workers=num_workers)
+  
+  print("Starting Mammoth... Press CTRL+C to stop.")
+  
+  try:
+      mammoth.run()
+  except  KeyboardInterrupt:
+      print("Shutdown signal received")
+      mammoth.stop()
+      print("Mammoth application stopped gracefully")
 ```
 
 Please visit [Mammoth's repository](https://github.com/KarelOmab/Drumpler-Mammoth) to learn more about it.
