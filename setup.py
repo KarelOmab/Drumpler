@@ -1,8 +1,17 @@
 from setuptools import setup, find_packages
+# Function to read the version from __version__.py
+def get_version(rel_path):
+    with open(rel_path, 'r') as file:
+        for line in file:
+            if line.startswith('__version__'):
+                delimiters = '"\''
+                quote = line.split('=')[1].strip()[0]
+                return line.split(quote)[1]
+    raise RuntimeError("Unable to find version string.")
 
 setup(
     name='Drumpler',
-    version='2.2.8',
+    version=get_version("drumpler/__version__.py"),
     author='Karel Tutsu',
     author_email='karel.tutsu@gmail.com',
     description='Framework for rapidly developing a restful API that requires post processing',
