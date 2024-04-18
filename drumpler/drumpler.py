@@ -6,6 +6,7 @@ from .sql_base import db, init_app  # Import db and the initialization function
 from .sql_request import SqlRequest
 from .sql_job import SqlJob
 from .sql_event import SqlEvent
+from .__version__ import __version__
 
 app = Flask(__name__)
 
@@ -63,7 +64,7 @@ class Drumpler:
         return authorization and authorization == f"Bearer {self.authorization_key}"
     
     def hello_world(self):
-        return "Hello Drumpler!"
+        return f"Hello Drumpler {__version__}!"
 
     def __process_request(self):
         if not self.__authorize_request():
