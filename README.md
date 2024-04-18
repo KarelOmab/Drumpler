@@ -141,7 +141,7 @@ if __name__ == "__main__":
 	 - **Drumpler** records incoming HTTP requests and requires **three** variables from the end end user
 		 - **Bearer Token: authorization key** - requests without this key will be ignored
 		 - **request_raw** - put your desired payload here. This can be utilized by Mammoth(s) to do something meaningful or you can just simply store some data.
-		 - **custom_value** - **Optional:** This will be utilized by Mammoth(s) to request specific jobs.
+		 - **custom_value** - this will be utilized by Mammoth(s) to request specific jobs.
 	 - **Mammoth** fetches pending jobs **from Drumpler** and **exposes a method** for some developer to implement their desired workflow(s) 
 		 - Mammoth is designed to automatically handle all communications with Drumpler so the end user can simply focus on processing the desired payload.
 
