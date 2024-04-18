@@ -1,2 +1,2 @@
-from .drumpler import Drumpler
+from .drumpler import Drumpler, app
 
