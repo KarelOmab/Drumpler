@@ -8,4 +8,6 @@ class SqlJob(db.Model):
     modified_date = db.Column(db.DateTime(timezone=True), default=db.func.current_timestamp(), onupdate=db.func.current_timestamp())
     finished_date = db.Column(db.DateTime(timezone=True))
     status = db.Column(db.String)
+    is_being_processed = db.Column(db.Boolean, default=False)  # Added this line
     events = db.relationship("SqlEvent", backref="job", lazy='dynamic')
+
