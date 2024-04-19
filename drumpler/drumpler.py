@@ -100,21 +100,29 @@ class Drumpler:
     def __get_next_pending_job(self):
         custom_value = request.args.get('custom_value', None)
         try:
-            job = db.session.query(SqlJob, SqlRequest)\
+            result = db.session.query(SqlJob, SqlRequest)\
                 .join(SqlRequest, SqlJob.request_id == SqlRequest.id)\
                 .filter(
                     SqlJob.status == 'Pending',
                     SqlRequest.custom_value == custom_value,
-                    SqlRequest.is_handled == 0
-                ).order_by(SqlJob.created_date).first()
+                    SqlRequest.is_handled == 0,
+                    SqlJob.is_being_processed == False
+                ).order_by(SqlJob.created_date)\
+                .with_for_update(skip_locked=True).first()  # Lock the selected row
 
-            if job:
-                job_data, request_data = job
-                # Mark job as being processed
-                job_data.is_being_processed = True  
-                db.session.commit()  # Commit changes explicitly
+            # Check if the query returned None (no jobs found)
+            if result is None:
+                db.session.rollback()  # Rollback to ensure clean state
+                return jsonify({"message": "No pending jobs found."}), 404
+
+            # Otherwise, unpack the result
+            job, request_data = result
+
+            if job and request_data:
+                job.is_being_processed = True
+                db.session.commit()  # Commit the lock and changes explicitly
                 return jsonify({
-                    "job_id": job_data.id,
+                    "job_id": job.id,
                     "request_id": request_data.id,
                     "source_ip": request_data.source_ip,
                     "user_agent": request_data.user_agent,
@@ -123,9 +131,6 @@ class Drumpler:
                     "request_raw": request_data.request_raw,
                     "custom_value": request_data.custom_value
                 }), 200
-            else:
-                db.session.rollback()  # Rollback explicitly if nothing found
-                return jsonify({"message": "No pending jobs found."}), 404
 
         except Exception as e:
             db.session.rollback()  # Ensure rollback on exception
@@ -149,14 +154,24 @@ class Drumpler:
                 return jsonify({"message": "Job not found"}), 404
 
     def __mark_request_as_handled(self, job_id):
-        with self.app.app_context():  # Ensure the application context is being used
-            job = SqlJob.query.get(job_id)
-            if job:
-                request = SqlRequest.query.get(job.request_id)
-                request.is_handled = 1
-                db.session.commit()
-                return jsonify({"message": "Request marked as handled"}), 200
-            return jsonify({"message": "Job or request not found"}), 404
+        with self.app.app_context():
+            try:
+                job = SqlJob.query.get(job_id)
+                if job:
+                    request = SqlRequest.query.get(job.request_id)
+                    if request:
+                        request.is_handled = 1
+                        job.is_being_processed = False  # Reset the lock
+                        db.session.commit()
+                        return jsonify({"message": "Request marked as handled"}), 200
+                    else:
+                        raise ValueError("Request not found")
+                else:
+                    raise ValueError("Job not found")
+            except Exception as e:
+                db.session.rollback()  # Rollback in case of any failure
+                return jsonify({"message": str(e)}), 404
+
 
     def __get_request(self, request_id):
         if not self.__authorize_request():
