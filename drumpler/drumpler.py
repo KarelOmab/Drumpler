@@ -57,7 +57,7 @@ class Drumpler:
         self.app.add_url_rule('/jobs/<int:job_id>', view_func=self.__update_job, methods=['PUT'])
         self.app.add_url_rule('/jobs/<int:job_id>/update-status', view_func=self.__update_job_status, methods=['PUT'])
         self.app.add_url_rule('/jobs/<int:job_id>/mark-handled', view_func=self.__mark_request_as_handled, methods=['PUT'])
-        self.app.add_url_rule('/events', view_func=self.__create_event, methods=['POST'])
+        self.app.add_url_rule('/jobs/<int:job_id>/insert-event', view_func=self.__insert_event, methods=['POST'])
 
     def __authorize_request(self):
         authorization = request.headers.get('Authorization')
@@ -213,11 +213,11 @@ class Drumpler:
         else:
             return jsonify({"message": "Job not found"}), 404
 
-    def __create_event(self):
+    def __insert_event(self, job_id):
         if not self.__authorize_request():
             return jsonify({"message": "Unauthorized access"}), 401
         data = request.get_json()
-        new_event = SqlEvent(job_id=data['job_id'], message=data['message'])
+        new_event = SqlEvent(job_id=job_id, message=data['message'])
         db.session.add(new_event)
         db.session.commit()
         return jsonify({'event_id': new_event.id}), 200
