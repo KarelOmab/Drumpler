@@ -220,7 +220,7 @@ class Drumpler:
         new_event = SqlEvent(job_id=data['job_id'], message=data['message'])
         db.session.add(new_event)
         db.session.commit()
-        return jsonify({'event_id': new_event.id}), 201
+        return jsonify({'event_id': new_event.id}), 200
 
     def run(self):
         app.run(host=self.host, port=self.port, debug=self.debug)
